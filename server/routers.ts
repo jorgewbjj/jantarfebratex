@@ -5,6 +5,7 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   addGuest,
   assignGuestToTable,
+  bulkAssignGuests,
   bulkInsertGuests,
   deleteGuest,
   getDefaultEvent,
@@ -149,6 +150,30 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await deleteGuest(input.guestId);
         return { success: true };
+      }),
+
+    bulkAssign: publicProcedure
+      .input(
+        z.object({
+          guestIds: z.array(z.number()).min(1),
+          tableId: z.number(),
+          companyName: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        try {
+          const result = await bulkAssignGuests(
+            input.guestIds,
+            input.tableId,
+            input.companyName ?? null
+          );
+          return { success: true, count: result.count };
+        } catch (err) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: err instanceof Error ? err.message : "Erro ao alocar convidados",
+          });
+        }
       }),
 
     bulkImport: publicProcedure

@@ -1,5 +1,15 @@
+/**
+ * UnassignedSidebar
+ *
+ * Two drag modes:
+ *  1. Single-guest drag  — drag an individual GuestPill → sets draggedGuest
+ *  2. Company-group drag — drag the company header row → sets draggedCompany
+ *     When dropped on a table, all guests in that company are assigned at once
+ *     (capacity validation happens server-side via guests.bulkAssign).
+ */
+
 import React, { useState } from "react";
-import { Search, Upload, Users, GripVertical, X } from "lucide-react";
+import { Search, Upload, Users, GripVertical, X, Building2, ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
@@ -13,7 +23,12 @@ interface UnassignedSidebarProps {
 
 export default function UnassignedSidebar({ eventId }: UnassignedSidebarProps) {
   const [search, setSearch] = useState("");
-  const { setDraggedGuest, setImportDialogOpen } = useSeating();
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const {
+    setDraggedGuest,
+    setDraggedCompany,
+    setImportDialogOpen,
+  } = useSeating();
   const utils = trpc.useUtils();
 
   const { data: unassigned = [], isLoading } = trpc.guests.unassigned.useQuery({
@@ -30,7 +45,7 @@ export default function UnassignedSidebar({ eventId }: UnassignedSidebarProps) {
     onError: (e) => toast.error("Erro: " + e.message),
   });
 
-  // Group by company
+  // Group by company — preserving sort order
   const byCompany = unassigned.reduce<Record<string, Guest[]>>((acc, g) => {
     const key = g.company ?? "— Sem empresa —";
     if (!acc[key]) acc[key] = [];
@@ -39,6 +54,15 @@ export default function UnassignedSidebar({ eventId }: UnassignedSidebarProps) {
   }, {});
 
   const companies = Object.keys(byCompany).sort((a, b) => a.localeCompare(b));
+
+  const toggleCollapse = (company: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(company)) next.delete(company);
+      else next.add(company);
+      return next;
+    });
+  };
 
   return (
     <div className="h-full flex flex-col bg-[#f0ece4] border-r border-[#e0d9d0]">
@@ -88,7 +112,7 @@ export default function UnassignedSidebar({ eventId }: UnassignedSidebarProps) {
       </div>
 
       {/* Guest list */}
-      <div className="flex-1 overflow-y-auto px-5 py-3">
+      <div className="flex-1 overflow-y-auto px-4 py-3">
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -108,31 +132,112 @@ export default function UnassignedSidebar({ eventId }: UnassignedSidebarProps) {
             )}
           </div>
         ) : (
-          <div className="space-y-4">
-            {companies.map((company) => (
-              <div key={company}>
-                <p className="editorial-label text-[#8a7f72] mb-1.5 px-1">{company}</p>
-                <ul className="space-y-1">
-                  {byCompany[company].map((guest) => (
-                    <GuestPill
-                      key={guest.id}
-                      guest={guest}
-                      onDragStart={() => setDraggedGuest({ guest, sourceTableId: null })}
-                      onDragEnd={() => setDraggedGuest(null)}
-                      onDelete={() => deleteMutation.mutate({ guestId: guest.id })}
-                    />
-                  ))}
-                </ul>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {companies.map((company) => {
+              const guests = byCompany[company];
+              const isCollapsed = collapsed.has(company);
+              const isSemEmpresa = company === "— Sem empresa —";
+
+              return (
+                <div key={company} className="rounded-sm overflow-hidden border border-[#e0d9d0]">
+                  {/* Company header — draggable as a group */}
+                  <div
+                    className={`flex items-center gap-2 px-2.5 py-2 bg-[#e8e2d8] hover:bg-[#ddd8cf] transition-colors ${
+                      isSemEmpresa ? "cursor-default" : "cursor-grab active:cursor-grabbing"
+                    }`}
+                    draggable={!isSemEmpresa}
+                    onDragStart={
+                      isSemEmpresa
+                        ? undefined
+                        : () => {
+                            setDraggedCompany({
+                              companyName: company,
+                              guestIds: guests.map((g) => g.id),
+                              guestCount: guests.length,
+                            });
+                          }
+                    }
+                    onDragEnd={
+                      isSemEmpresa
+                        ? undefined
+                        : () => setDraggedCompany(null)
+                    }
+                    title={
+                      isSemEmpresa
+                        ? undefined
+                        : `Arraste para alocar todos os ${guests.length} convidados de "${company}" em uma mesa`
+                    }
+                  >
+                    {/* Drag handle — only for named companies */}
+                    {!isSemEmpresa ? (
+                      <GripVertical size={13} className="text-[#8a7f72] shrink-0" />
+                    ) : (
+                      <Building2 size={13} className="text-[#b0a89e] shrink-0" />
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`text-xs font-semibold truncate leading-tight ${
+                          isSemEmpresa ? "text-[#b0a89e] italic" : "text-[#1c1917]"
+                        }`}
+                      >
+                        {company}
+                      </p>
+                    </div>
+
+                    {/* Guest count badge */}
+                    <span className="shrink-0 text-[10px] font-medium bg-[#c8bfb0] text-[#5a4f44] rounded-full px-1.5 py-0.5 leading-none">
+                      {guests.length}
+                    </span>
+
+                    {/* Collapse toggle */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleCollapse(company); }}
+                      className="shrink-0 text-[#8a7f72] hover:text-[#1c1917] transition-colors"
+                      aria-label={isCollapsed ? "Expandir" : "Recolher"}
+                    >
+                      {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                    </button>
+                  </div>
+
+                  {/* Drag hint for named companies */}
+                  {!isSemEmpresa && !isCollapsed && (
+                    <div className="px-3 py-1 bg-[#f0ece4] border-b border-[#e0d9d0]">
+                      <p className="text-[10px] text-[#b0a89e] italic">
+                        Arraste o cabeçalho para alocar todos de uma vez
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Individual guests */}
+                  {!isCollapsed && (
+                    <ul className="divide-y divide-[#e8e2d8] bg-white">
+                      {guests.map((guest) => (
+                        <GuestPill
+                          key={guest.id}
+                          guest={guest}
+                          onDragStart={() =>
+                            setDraggedGuest({ guest, sourceTableId: null })
+                          }
+                          onDragEnd={() => setDraggedGuest(null)}
+                          onDelete={() =>
+                            deleteMutation.mutate({ guestId: guest.id })
+                          }
+                        />
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Footer stats */}
+      {/* Footer hint */}
       <div className="px-5 py-3 border-t border-[#e0d9d0]">
-        <p className="text-xs text-[#b0a89e] text-center">
-          Arraste convidados para as mesas no mapa
+        <p className="text-[10px] text-[#b0a89e] text-center leading-tight">
+          Arraste um convidado ou o cabeçalho da empresa para uma mesa
         </p>
       </div>
     </div>
@@ -152,17 +257,19 @@ function GuestPill({
 }) {
   return (
     <li
-      className="guest-pill group flex items-center gap-2 px-2.5 py-2 bg-white border border-[#e8e2d8] rounded-sm hover:border-[#c8bfb0] hover:shadow-sm transition-all"
+      className="guest-pill group flex items-center gap-2 px-2.5 py-2 hover:bg-[#faf8f3] transition-colors cursor-grab active:cursor-grabbing"
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      <GripVertical size={12} className="text-[#c8bfb0] shrink-0 group-hover:text-[#8a7f72] transition-colors" />
+      <GripVertical
+        size={12}
+        className="text-[#c8bfb0] shrink-0 group-hover:text-[#8a7f72] transition-colors"
+      />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-[#1c1917] truncate leading-tight">{guest.name}</p>
-        {guest.company && (
-          <p className="text-xs text-[#8a7f72] truncate leading-tight">{guest.company}</p>
-        )}
+        <p className="text-sm font-medium text-[#1c1917] truncate leading-tight">
+          {guest.name}
+        </p>
       </div>
       <Button
         variant="ghost"

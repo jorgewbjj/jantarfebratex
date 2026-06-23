@@ -75,3 +75,13 @@
 - [x] UI simplificada: sem step "map", vai direto para preview
 - [x] Botão para baixar template XLS de exemplo
 - [x] Mostrar contagem de empresas únicas na preview
+
+## Alocação em Grupo por Empresa (v4)
+- [x] tRPC bulkAssign: atribuir lista de guestIds a uma tableId com validação de capacidade
+- [x] SeatingContext: adicionar draggedCompany (nome + guestIds) para drag de grupo
+- [x] UnassignedSidebar: cabeçalho de empresa com ícone de arrastar para drag de grupo
+- [x] UnassignedSidebar: contador de convidados por empresa e indicador visual
+- [x] FloorMap: aceitar drop de grupo, mostrar overlay de capacidade ao arrastar empresa
+- [x] FloorMap: bloquear drop quando convidados > vagas disponíveis na mesa (toast de erro)
+- [x] FloorMap: ao soltar empresa na mesa, atribuir companyName automaticamente se mesa estiver vazia
+- [x] TableDetailPanel: deixar claro como editar nome da empresa na mesa

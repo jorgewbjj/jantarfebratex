@@ -1,4 +1,4 @@
-import { and, eq, isNull, like, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { events, guests, tables, InsertGuest, InsertTable, User, users, InsertUser } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -159,6 +159,49 @@ export async function deleteGuest(guestId: number) {
   const db = await getDb();
   if (!db) return;
   await db.delete(guests).where(eq(guests.id, guestId));
+}
+
+/**
+ * Bulk-assign a list of guests to a table, enforcing capacity.
+ * Returns { success: true, count } or throws with a descriptive message.
+ */
+export async function bulkAssignGuests(
+  guestIds: number[],
+  tableId: number,
+  companyName?: string | null
+): Promise<{ count: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  if (guestIds.length === 0) return { count: 0 };
+
+  // 1. Fetch table to check capacity
+  const tableRows = await db.select().from(tables).where(eq(tables.id, tableId)).limit(1);
+  const table = tableRows[0];
+  if (!table) throw new Error(`Mesa não encontrada (id=${tableId})`);
+
+  // 2. Count guests already seated at this table
+  const seated = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(guests)
+    .where(eq(guests.tableId, tableId));
+  const currentCount = Number(seated[0]?.count ?? 0);
+  const available = table.capacity - currentCount;
+
+  if (guestIds.length > available) {
+    throw new Error(
+      `Capacidade insuficiente: mesa ${table.tableNumber} tem apenas ${available} lugar${available !== 1 ? "es" : ""} disponível${available !== 1 ? "is" : ""} (capacidade ${table.capacity}, ocupada ${currentCount})`
+    );
+  }
+
+  // 3. Assign all guests in one update
+  await db.update(guests).set({ tableId }).where(inArray(guests.id, guestIds));
+
+  // 4. Optionally set the company name on the table (only if table has no company yet)
+  if (companyName && !table.companyName) {
+    await db.update(tables).set({ companyName }).where(eq(tables.id, tableId));
+  }
+
+  return { count: guestIds.length };
 }
 
 export async function bulkInsertGuests(guestList: InsertGuest[]) {

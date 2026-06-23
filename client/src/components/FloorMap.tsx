@@ -46,7 +46,15 @@ const MAX_ZOOM = 3.0;
 const ZOOM_STEP = 0.2;
 
 export default function FloorMap({ eventId, tables, guestCounts, onTableClick }: FloorMapProps) {
-  const { selectedTableId, draggedGuest, setDraggedGuest, dragOverTableId, setDragOverTableId } = useSeating();
+  const {
+    selectedTableId,
+    draggedGuest,
+    setDraggedGuest,
+    draggedCompany,
+    setDraggedCompany,
+    dragOverTableId,
+    setDragOverTableId,
+  } = useSeating();
   const utils = trpc.useUtils();
   const [tooltip, setTooltip] = useState<{ x: number; y: number; tableId: number } | null>(null);
 
@@ -165,10 +173,21 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
     onError: (err) => toast.error("Erro ao mover convidado: " + err.message),
   });
 
+  const bulkAssignMutation = trpc.guests.bulkAssign.useMutation({
+    onSuccess: (data) => {
+      utils.guests.unassigned.invalidate();
+      utils.guests.list.invalidate();
+      utils.tables.list.invalidate();
+      utils.tables.getGuests.invalidate();
+      toast.success(`${data.count} convidado${data.count !== 1 ? "s" : ""} alocado${data.count !== 1 ? "s" : ""} com sucesso!`);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const tableByNumber = new Map(tables.map((t) => [t.tableNumber, t]));
 
   const handleDragOver = (e: React.DragEvent, tableId: number) => {
-    if (!draggedGuest) return;
+    if (!draggedGuest && !draggedCompany) return;
     e.preventDefault();
     setDragOverTableId(tableId);
   };
@@ -176,6 +195,30 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
   const handleDrop = (e: React.DragEvent, tableId: number) => {
     e.preventDefault();
     setDragOverTableId(null);
+
+    // ── Company group drop ────────────────────────────────────────────────────
+    if (draggedCompany) {
+      const table = tables.find((t) => t.id === tableId);
+      if (!table) { setDraggedCompany(null); return; }
+      const currentCount = guestCounts.get(tableId) ?? 0;
+      const available = table.capacity - currentCount;
+      if (draggedCompany.guestCount > available) {
+        toast.error(
+          `Capacidade insuficiente: mesa ${table.tableNumber} tem ${available} lugar${available !== 1 ? "es" : ""} disponível${available !== 1 ? "is" : ""}, mas "${draggedCompany.companyName}" tem ${draggedCompany.guestCount} convidado${draggedCompany.guestCount !== 1 ? "s" : ""}.`
+        );
+        setDraggedCompany(null);
+        return;
+      }
+      bulkAssignMutation.mutate({
+        guestIds: draggedCompany.guestIds,
+        tableId,
+        companyName: draggedCompany.companyName,
+      });
+      setDraggedCompany(null);
+      return;
+    }
+
+    // ── Single guest drop ─────────────────────────────────────────────────────
     if (!draggedGuest) return;
     const table = tables.find((t) => t.id === tableId);
     if (!table) return;
@@ -312,8 +355,21 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
               const isSelected = selectedTableId === table.id;
               const isDragOver = dragOverTableId === table.id;
 
-              const fill = isDragOver ? "#bfdbfe" : isSelected ? "#1c1917" : STATUS_FILL[status];
-              const stroke = isDragOver ? "#3b82f6" : isSelected ? "#1c1917" : STATUS_STROKE[status];
+              // When dragging a company group, compute capacity state for visual feedback
+              const available = table.capacity - count;
+              const groupWouldFit = draggedCompany ? draggedCompany.guestCount <= available : true;
+              const isGroupDragOver = isDragOver && !!draggedCompany;
+
+              const fill = isGroupDragOver
+                ? (groupWouldFit ? "#bbf7d0" : "#fecaca")  // green=ok, red=too many
+                : isDragOver ? "#bfdbfe"
+                : isSelected ? "#1c1917"
+                : STATUS_FILL[status];
+              const stroke = isGroupDragOver
+                ? (groupWouldFit ? "#4ade80" : "#f87171")
+                : isDragOver ? "#3b82f6"
+                : isSelected ? "#1c1917"
+                : STATUS_STROKE[status];
               const textColor = isSelected ? "#f8f5ef" : "#1c1917";
               const subColor = isSelected ? "#d6d3d1" : "#8a7f72";
               const companyColor = isSelected ? "#e7e5e4" : "#5a4f44";
@@ -433,6 +489,35 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
                   >
                     {count}/{table.capacity}
                   </text>
+
+                  {/* Capacity badge — shown when dragging a company group over this table */}
+                  {isGroupDragOver && (
+                    <g style={{ pointerEvents: "none" }}>
+                      <rect
+                        x={pos.x - 22}
+                        y={pos.y - radius - 20}
+                        width={44}
+                        height={16}
+                        rx={8}
+                        fill={groupWouldFit ? "#16a34a" : "#dc2626"}
+                        opacity={0.95}
+                      />
+                      <text
+                        x={pos.x}
+                        y={pos.y - radius - 12}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize={7}
+                        fontWeight="700"
+                        fill="white"
+                        fontFamily="DM Sans, sans-serif"
+                      >
+                        {groupWouldFit
+                          ? `+${draggedCompany!.guestCount} ✔`
+                          : `${draggedCompany!.guestCount}>${available} ✘`}
+                      </text>
+                    </g>
+                  )}
                 </g>
               );
             })}
