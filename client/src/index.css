@@ -141,23 +141,13 @@
   text-transform: uppercase;
 }
 
-/* Table node on floor map */
+/* Table node on floor map — NO hover animation, static render */
 .table-node {
-  transition: all 180ms cubic-bezier(0.23, 1, 0.32, 1);
   cursor: pointer;
 }
 
-.table-node:hover {
-  transform: scale(1.08);
-}
-
-.table-node:active {
-  transform: scale(0.97);
-}
-
 .table-node.drag-over {
-  transform: scale(1.12);
-  box-shadow: 0 0 0 3px oklch(0.55 0.15 200);
+  /* drag-over visual handled inline via SVG fill/stroke */
 }
 
 /* Guest pill drag */

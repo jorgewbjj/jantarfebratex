@@ -478,7 +478,7 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
                 <g
                   key={pos.number}
                   className="table-node"
-                  style={{ cursor: "pointer" }}
+                  style={{ cursor: "pointer", transition: "none", transform: "none" }}
                   onClick={() => onTableClick(table.id)}
                   onDragOver={(e) => handleDragOver(e, table.id)}
                   onDrop={(e) => handleDrop(e, table.id)}
@@ -509,7 +509,7 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
                     );
                   })}
 
-                  {/* Table circle — no hover animation, static render */}
+                  {/* Table circle — static, no hover animation */}
                   <circle
                     cx={pos.x}
                     cy={pos.y}
@@ -517,7 +517,6 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
                     fill={fill}
                     stroke={stroke}
                     strokeWidth={strokeWidth}
-                    style={{ transition: "none" }}
                   />
 
                   {/* Large table inner ring */}
