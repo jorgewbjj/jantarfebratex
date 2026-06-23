@@ -1,14 +1,35 @@
 // DON CONCEPT floor layout — 70 tables
-// Coordinates are in a 1100×720 virtual canvas (main hall only)
-// Based on the architectural plan: StudioCaso_DON_CONCEPT_HANIERR01NUMERADO.pdf
+// Pixel-perfect recreation of StudioCaso_DON_CONCEPT_HANIERR01NUMERADO.pdf
+// Canvas: 1060×660 virtual units (main hall only, not the outdoor area)
 // Tables 10 and 44 have capacity 20; all others have capacity 10.
 //
-// COORDINATE SYSTEM:
-// The hall spans x: 55–1045, y: 40–680 in virtual canvas units.
-// Column spacing: ~70px; Row spacing: ~80px
-// Left block (tables 01–34): x 90–460
-// Right block (tables 35–70): x 580–1010
-// Central corridor (palco + pista + lounge): x 460–580
+// COORDINATE SYSTEM (derived from PDF 1:100 scale plan):
+//
+// LEFT BLOCK columns (x):
+//   Col A (23,24,34):           x = 95
+//   Col B (04,05,14,15,22,25,33): x = 155
+//   Col C (03,06,13,16,21,26,31): x = 215
+//   Col D (02,07,12,17,20,27,32): x = 275
+//   Col E (01,08,11,18,19,28,30): x = 335
+//   Col F (09,10,29):            x = 395
+//
+// RIGHT BLOCK columns (x):
+//   Col G (43,44,54,65,64,66):   x = 615
+//   Col H (35,42,45,53,55,63,67): x = 675
+//   Col I (36,41,46,52,56,62,68): x = 735
+//   Col J (40,47,51,57,61,69):   x = 795
+//   Col K (37,39,48,50,58,60,70): x = 855
+//   Col L (38,49,59):            x = 915
+//
+// ROW Y positions:
+//   Row 1: y = 115
+//   Row 2: y = 185
+//   Row 3: y = 255
+//   Row 4: y = 325
+//   Row 5: y = 395
+//   Row 6: y = 460
+//   Row 7: y = 520
+//   Row 8: y = 580
 
 export interface TablePosition {
   number: number;
@@ -17,142 +38,116 @@ export interface TablePosition {
   large?: boolean; // true for tables 10 and 44 (capacity 20)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COLUMN X positions (left block)
-// ─────────────────────────────────────────────────────────────────────────────
-// Col A (far-left, only 23/24/34): x = 90
-// Col B (04/05/14/15/22/25/33):    x = 160
-// Col C (03/06/13/16/21/26/31):    x = 230
-// Col D (02/07/12/17/20/27/32):    x = 300
-// Col E (01/08/11/18/19/28/30):    x = 370
-// Col F (09/10/29):                x = 440
-//
-// COLUMN X positions (right block)
-// Col G (43/44/54/65/64):          x = 600
-// Col H (35/42/45/53/55/63/66/67): x = 670
-// Col I (36/41/46/52/56/62/68):    x = 740
-// Col J (40/47/51/57/61/69):       x = 810
-// Col K (37/39/48/50/58/60/70):    x = 880
-// Col L (far-right, 38/49/59):     x = 950
-//
-// ROW Y positions
-// Row 1: y = 100
-// Row 2: y = 180
-// Row 3: y = 260
-// Row 4: y = 340
-// Row 5: y = 420
-// Row 6: y = 500
-// Row 7a: y = 560
-// Row 7b: y = 620
-
 export const TABLE_POSITIONS: TablePosition[] = [
   // ══════════════════════════════════════════════════════
   // LEFT BLOCK
   // ══════════════════════════════════════════════════════
 
-  // ── ROW 1: 04, 03, 02, 01
-  { number:  4, x: 160, y: 100 },
-  { number:  3, x: 230, y: 100 },
-  { number:  2, x: 300, y: 100 },
-  { number:  1, x: 370, y: 100 },
+  // ── ROW 1 (y=115): 04, 03, 02, 01
+  { number:  4, x: 155, y: 115 },
+  { number:  3, x: 215, y: 115 },
+  { number:  2, x: 275, y: 115 },
+  { number:  1, x: 335, y: 115 },
 
-  // ── ROW 2: 05, 06, 07, 08, 09
-  { number:  5, x: 160, y: 180 },
-  { number:  6, x: 230, y: 180 },
-  { number:  7, x: 300, y: 180 },
-  { number:  8, x: 370, y: 180 },
-  { number:  9, x: 440, y: 180 },
+  // ── ROW 2 (y=185): 05, 06, 07, 08, 09
+  { number:  5, x: 155, y: 185 },
+  { number:  6, x: 215, y: 185 },
+  { number:  7, x: 275, y: 185 },
+  { number:  8, x: 335, y: 185 },
+  { number:  9, x: 395, y: 185 },
 
-  // ── ROW 3: 14, 13, 12, 11, 10(large)
-  { number: 14, x: 160, y: 260 },
-  { number: 13, x: 230, y: 260 },
-  { number: 12, x: 300, y: 260 },
-  { number: 11, x: 370, y: 260 },
-  { number: 10, x: 440, y: 260, large: true },
+  // ── ROW 3 (y=255): 14, 13, 12, 11, 10(large)
+  { number: 14, x: 155, y: 255 },
+  { number: 13, x: 215, y: 255 },
+  { number: 12, x: 275, y: 255 },
+  { number: 11, x: 335, y: 255 },
+  { number: 10, x: 395, y: 255, large: true },
 
-  // ── ROW 4: 15, 16, 17, 18
-  { number: 15, x: 160, y: 340 },
-  { number: 16, x: 230, y: 340 },
-  { number: 17, x: 300, y: 340 },
-  { number: 18, x: 370, y: 340 },
+  // ── ROW 4 (y=325): 15, 16, 17, 18
+  { number: 15, x: 155, y: 325 },
+  { number: 16, x: 215, y: 325 },
+  { number: 17, x: 275, y: 325 },
+  { number: 18, x: 335, y: 325 },
 
-  // ── ROW 5: 22, 21, 20, 19, 29
-  { number: 22, x: 160, y: 420 },
-  { number: 21, x: 230, y: 420 },
-  { number: 20, x: 300, y: 420 },
-  { number: 19, x: 370, y: 420 },
-  { number: 29, x: 440, y: 420 },
+  // ── ROW 5 (y=395): 22, 21, 20, 19, 29
+  { number: 22, x: 155, y: 395 },
+  { number: 21, x: 215, y: 395 },
+  { number: 20, x: 275, y: 395 },
+  { number: 19, x: 335, y: 395 },
+  { number: 29, x: 395, y: 395 },
 
-  // ── ROW 6: 23(far-left), 25, 26, 27, 28
-  { number: 23, x:  90, y: 500 },
-  { number: 25, x: 230, y: 500 },
-  { number: 26, x: 300, y: 500 },
-  { number: 27, x: 370, y: 500 },
-  { number: 28, x: 440, y: 500 },
+  // ── ROW 6 (y=460): 23(far-left), 25, 26, 27, 28
+  { number: 23, x:  95, y: 460 },
+  { number: 25, x: 215, y: 460 },
+  { number: 26, x: 275, y: 460 },
+  { number: 27, x: 335, y: 460 },
+  { number: 28, x: 395, y: 460 },
 
-  // ── ROW 7: 24(far-left), 33, 31, 32, 30
-  { number: 24, x:  90, y: 580 },
-  { number: 33, x: 160, y: 560 },
-  { number: 31, x: 230, y: 560 },
-  { number: 32, x: 300, y: 620 },
-  { number: 30, x: 370, y: 620 },
+  // ── ROW 7 (y=520): 24(far-left), 33, 31
+  { number: 24, x:  95, y: 520 },
+  { number: 33, x: 155, y: 520 },
+  { number: 31, x: 215, y: 520 },
 
-  // ── Far-left isolated
-  { number: 34, x:  90, y: 640 },
+  // ── ROW 8 (y=580): 34(far-left), 32, 30
+  { number: 34, x:  95, y: 580 },
+  { number: 32, x: 275, y: 580 },
+  { number: 30, x: 335, y: 580 },
 
   // ══════════════════════════════════════════════════════
   // RIGHT BLOCK
   // ══════════════════════════════════════════════════════
 
-  // ── ROW 1: 35, 36, 37
-  { number: 35, x: 670, y: 100 },
-  { number: 36, x: 740, y: 100 },
-  { number: 37, x: 880, y: 100 },
+  // ── ROW 1 (y=115): 35, 36, (gap at 795), 37
+  { number: 35, x: 675, y: 115 },
+  { number: 36, x: 735, y: 115 },
+  { number: 37, x: 855, y: 115 },
 
-  // ── ROW 2: 43, 42, 41, 40, 39, 38
-  { number: 43, x: 600, y: 180 },
-  { number: 42, x: 670, y: 180 },
-  { number: 41, x: 740, y: 180 },
-  { number: 40, x: 810, y: 180 },
-  { number: 39, x: 880, y: 180 },
-  { number: 38, x: 950, y: 180 },
+  // ── ROW 2 (y=185): 43, 42, 41, 40, 39, 38
+  { number: 43, x: 615, y: 185 },
+  { number: 42, x: 675, y: 185 },
+  { number: 41, x: 735, y: 185 },
+  { number: 40, x: 795, y: 185 },
+  { number: 39, x: 855, y: 185 },
+  { number: 38, x: 915, y: 185 },
 
-  // ── ROW 3: 44(large), 45, 46, 47, 48, 49
-  { number: 44, x: 600, y: 260, large: true },
-  { number: 45, x: 670, y: 260 },
-  { number: 46, x: 740, y: 260 },
-  { number: 47, x: 810, y: 260 },
-  { number: 48, x: 880, y: 260 },
-  { number: 49, x: 950, y: 260 },
+  // ── ROW 3 (y=255): 44(large), 45, 46, 47, 48, 49
+  { number: 44, x: 615, y: 255, large: true },
+  { number: 45, x: 675, y: 255 },
+  { number: 46, x: 735, y: 255 },
+  { number: 47, x: 795, y: 255 },
+  { number: 48, x: 855, y: 255 },
+  { number: 49, x: 915, y: 255 },
 
-  // ── ROW 4: 54, 53, 52, 51, 50
-  { number: 54, x: 600, y: 340 },
-  { number: 53, x: 670, y: 340 },
-  { number: 52, x: 740, y: 340 },
-  { number: 51, x: 810, y: 340 },
-  { number: 50, x: 880, y: 340 },
+  // ── ROW 4 (y=325): 54, 53, 52, 51, 50
+  { number: 54, x: 615, y: 325 },
+  { number: 53, x: 675, y: 325 },
+  { number: 52, x: 735, y: 325 },
+  { number: 51, x: 795, y: 325 },
+  { number: 50, x: 855, y: 325 },
 
-  // ── ROW 5: 65, 55, 56, 57, 58, 59
-  { number: 65, x: 600, y: 420 },
-  { number: 55, x: 670, y: 420 },
-  { number: 56, x: 740, y: 420 },
-  { number: 57, x: 810, y: 420 },
-  { number: 58, x: 880, y: 420 },
-  { number: 59, x: 950, y: 420 },
+  // ── ROW 5 (y=395): 65, 55, 56, 57, 58, 59
+  { number: 65, x: 615, y: 395 },
+  { number: 55, x: 675, y: 395 },
+  { number: 56, x: 735, y: 395 },
+  { number: 57, x: 795, y: 395 },
+  { number: 58, x: 855, y: 395 },
+  { number: 59, x: 915, y: 395 },
 
-  // ── ROW 6: 64, 63, 62, 61, 60
-  { number: 64, x: 600, y: 500 },
-  { number: 63, x: 670, y: 500 },
-  { number: 62, x: 740, y: 500 },
-  { number: 61, x: 810, y: 500 },
-  { number: 60, x: 880, y: 500 },
+  // ── ROW 6 (y=460): 64, 63, 62, 61, 60
+  { number: 64, x: 615, y: 460 },
+  { number: 63, x: 675, y: 460 },
+  { number: 62, x: 735, y: 460 },
+  { number: 61, x: 795, y: 460 },
+  { number: 60, x: 855, y: 460 },
 
-  // ── ROW 7: 67, 66, 68, 69, 70
-  { number: 67, x: 670, y: 560 },
-  { number: 66, x: 600, y: 600 },
-  { number: 68, x: 740, y: 600 },
-  { number: 69, x: 810, y: 600 },
-  { number: 70, x: 880, y: 600 },
+  // ── ROW 7 (y=520): 67, (gap), 69, 70
+  { number: 67, x: 675, y: 520 },
+  { number: 69, x: 795, y: 520 },
+  { number: 70, x: 855, y: 520 },
+
+  // ── ROW 8 (y=580): 66, 68
+  { number: 66, x: 615, y: 580 },
+  { number: 68, x: 735, y: 580 },
 ];
 
 // Verify all 70 tables are present
@@ -168,13 +163,6 @@ export function getTableCapacity(tableNumber: number): number {
 
 /**
  * Returns tables sorted by proximity to a given table number.
- * Optionally filters to only tables that have at least `minAvailable` free seats.
- *
- * @param targetNumber  The table number the user dropped on
- * @param allTables     Live table records (with id, tableNumber, capacity)
- * @param guestCounts   Map of tableId → current seated count
- * @param minAvailable  Minimum free seats required (defaults to 1)
- * @param maxResults    How many neighbors to return (defaults to 6)
  */
 export function getNeighborTables(
   targetNumber: number,
@@ -204,9 +192,8 @@ export function getNeighborTables(
 }
 
 /**
- * Given a target table and a company group, finds the smallest set of nearby
- * tables (starting from the target) that together have enough free seats.
- * Returns the tables in proximity order, or null if impossible.
+ * Finds the smallest set of nearby tables (starting from target) that together
+ * have enough free seats for the entire group.
  */
 export function findTableSetForGroup(
   targetNumber: number,
@@ -214,14 +201,9 @@ export function findTableSetForGroup(
   allTables: Array<{ id: number; tableNumber: number; capacity: number; companyName?: string | null }>,
   guestCounts: Map<number, number>
 ): Array<{ tableNumber: number; tableId: number; available: number; capacity: number; companyName: string | null; distance: number }> | null {
-  // Include the target table itself first
   const targetTable = allTables.find((t) => t.tableNumber === targetNumber);
   if (!targetTable) return null;
 
-  const targetSeated = guestCounts.get(targetTable.id) ?? 0;
-  const targetAvailable = targetTable.capacity - targetSeated;
-
-  // Get neighbors sorted by distance (including target at distance 0)
   const targetPos = TABLE_POSITIONS.find((p) => p.number === targetNumber)!;
   const candidates = allTables
     .map((t) => {
@@ -237,7 +219,6 @@ export function findTableSetForGroup(
     .filter((t): t is NonNullable<typeof t> => t !== null && t.available > 0)
     .sort((a, b) => a.distance - b.distance);
 
-  // Greedily pick nearest tables until we have enough seats
   let totalAvailable = 0;
   const selected: typeof candidates = [];
   for (const candidate of candidates) {
@@ -245,13 +226,13 @@ export function findTableSetForGroup(
     totalAvailable += candidate.available;
     if (totalAvailable >= guestCount) return selected;
   }
-  return null; // Not enough seats in the whole venue
+  return null;
 }
 
 // Canvas dimensions for the SVG floor map
 export const CANVAS_WIDTH = 1060;
-export const CANVAS_HEIGHT = 700;
+export const CANVAS_HEIGHT = 660;
 
-// Table visual radius — larger so company name fits
-export const TABLE_RADIUS_NORMAL = 30;
-export const TABLE_RADIUS_LARGE = 40;
+// Table visual radius
+export const TABLE_RADIUS_NORMAL = 28;
+export const TABLE_RADIUS_LARGE = 38;

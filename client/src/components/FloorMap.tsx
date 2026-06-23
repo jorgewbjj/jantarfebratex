@@ -181,25 +181,51 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
     (e.currentTarget as HTMLElement).removeAttribute("data-panning");
   };
 
-  // Touch pan
+  // Touch pan + pinch-to-zoom
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const touchPanOrigin = useRef({ x: 0, y: 0 });
+  const pinchStartDist = useRef<number | null>(null);
+  const pinchStartZoom = useRef<number>(1);
+
+  const getTouchDist = (touches: React.TouchList) => {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       touchPanOrigin.current = { ...pan };
+      pinchStartDist.current = null;
+    } else if (e.touches.length === 2) {
+      pinchStartDist.current = getTouchDist(e.touches);
+      pinchStartZoom.current = zoom;
+      touchStart.current = null;
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchStartDist.current !== null) {
+      // Pinch-to-zoom
+      e.preventDefault();
+      const dist = getTouchDist(e.touches);
+      const scale = dist / pinchStartDist.current;
+      const nz = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, parseFloat((pinchStartZoom.current * scale).toFixed(2))));
+      setZoom(nz);
+      setPan((p) => clampPan(p.x, p.y, nz));
+      return;
+    }
     if (!touchStart.current || e.touches.length !== 1) return;
     const dx = e.touches[0].clientX - touchStart.current.x;
     const dy = e.touches[0].clientY - touchStart.current.y;
     setPan(clampPan(touchPanOrigin.current.x + dx, touchPanOrigin.current.y + dy, zoom));
   };
 
-  const handleTouchEnd = () => { touchStart.current = null; };
+  const handleTouchEnd = () => {
+    touchStart.current = null;
+    pinchStartDist.current = null;
+  };
 
   // ── tRPC ─────────────────────────────────────────────────────────────────
   const assignMutation = trpc.guests.assign.useMutation({
@@ -384,18 +410,18 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
             <text x={71} y={270} textAnchor="middle" fontSize={6.5} fill="#8a7f72" fontFamily="DM Sans, sans-serif" letterSpacing="0.08em" transform="rotate(-90, 71, 270)">BUFFET</text>
 
             {/* ── PALCO (stage) — center-top ── */}
-            <rect x={462} y={95} width={136} height={110} fill="#e0dbd2" stroke="#b0a89e" strokeWidth={1.5} rx={4} />
-            <text x={530} y={143} textAnchor="middle" fontSize={10} fill="#5a4f44" fontFamily="DM Sans, sans-serif" letterSpacing="0.14em" fontWeight="600">PALCO</text>
-            <text x={530} y={157} textAnchor="middle" fontSize={7.5} fill="#a09890" fontFamily="DM Sans, sans-serif">/ Apresentação</text>
+            <rect x={462} y={75} width={136} height={120} fill="#e0dbd2" stroke="#b0a89e" strokeWidth={1.5} rx={4} />
+            <text x={530} y={130} textAnchor="middle" fontSize={10} fill="#5a4f44" fontFamily="DM Sans, sans-serif" letterSpacing="0.14em" fontWeight="600">PALCO</text>
+            <text x={530} y={144} textAnchor="middle" fontSize={7.5} fill="#a09890" fontFamily="DM Sans, sans-serif">/ Apresentação</text>
 
             {/* ── PISTA (dance floor) — center-middle ── */}
-            <rect x={468} y={215} width={124} height={120} fill="#ede9e0" stroke="#c0b8ae" strokeWidth={1} strokeDasharray="4 3" rx={3} />
-            <text x={530} y={282} textAnchor="middle" fontSize={8} fill="#a09890" fontFamily="DM Sans, sans-serif" letterSpacing="0.1em">PISTA</text>
+            <rect x={462} y={205} width={136} height={120} fill="#ede9e0" stroke="#c0b8ae" strokeWidth={1} strokeDasharray="4 3" rx={3} />
+            <text x={530} y={272} textAnchor="middle" fontSize={8} fill="#a09890" fontFamily="DM Sans, sans-serif" letterSpacing="0.1em">PISTA</text>
 
             {/* ── LOUNGE INTEGRADO — center-bottom ── */}
-            <rect x={462} y={345} width={136} height={130} fill="#e8e4dc" stroke="#b0a89e" strokeWidth={1.5} rx={4} />
-            <text x={530} y={406} textAnchor="middle" fontSize={9} fill="#5a4f44" fontFamily="DM Sans, sans-serif" letterSpacing="0.1em" fontWeight="600">LOUNGE</text>
-            <text x={530} y={419} textAnchor="middle" fontSize={7} fill="#a09890" fontFamily="DM Sans, sans-serif">Integrado</text>
+            <rect x={450} y={340} width={160} height={145} fill="#e8e4dc" stroke="#b0a89e" strokeWidth={1.5} rx={4} />
+            <text x={530} y={408} textAnchor="middle" fontSize={9} fill="#5a4f44" fontFamily="DM Sans, sans-serif" letterSpacing="0.1em" fontWeight="600">LOUNGE</text>
+            <text x={530} y={421} textAnchor="middle" fontSize={7} fill="#a09890" fontFamily="DM Sans, sans-serif">Integrado</text>
 
             {/* ── Tables ── */}
             {TABLE_POSITIONS.map((pos) => {
@@ -483,7 +509,7 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
                     );
                   })}
 
-                  {/* Table circle */}
+                  {/* Table circle — no hover animation, static render */}
                   <circle
                     cx={pos.x}
                     cy={pos.y}
@@ -491,6 +517,7 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
                     fill={fill}
                     stroke={stroke}
                     strokeWidth={strokeWidth}
+                    style={{ transition: "none" }}
                   />
 
                   {/* Large table inner ring */}

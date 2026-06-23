@@ -87,21 +87,33 @@
 - [x] TableDetailPanel: deixar claro como editar nome da empresa na mesa
 
 ## Sugestão de Mesas Vizinhas (v5)
-- [ ] Algoritmo de mesas vizinhas em floorLayout.ts (distância euclidiana entre posições SVG)
-- [ ] SuggestNeighborDialog: modal mostrando mesas vizinhas com vagas disponíveis
-- [ ] Highlight das mesas sugeridas no mapa enquanto o dialog está aberto
-- [ ] Ação "Distribuir" no dialog: aloca convidados nas mesas sugeridas em sequência
-- [ ] SeatingContext: estado pendingCompanyDrop para passar dados do drop para o dialog
-- [ ] Integração no handleDrop do FloorMap: ao falhar por capacidade, abrir dialog de sugestão
+- [x] Algoritmo de mesas vizinhas em floorLayout.ts (distância euclidiana entre posições SVG)
+- [x] SuggestNeighborDialog: modal mostrando mesas vizinhas com vagas disponíveis
+- [x] Highlight das mesas sugeridas no mapa enquanto o dialog está aberto
+- [x] Ação "Distribuir" no dialog: aloca convidados nas mesas sugeridas em sequência
+- [x] SeatingContext: estado pendingCompanyDrop para passar dados do drop para o dialog
+- [x] Integração no handleDrop do FloorMap: ao falhar por capacidade, abrir dialog de sugestão
 
 ## Múltiplas Empresas por Mesa (v6)
-- [ ] Schema: adicionar coluna companyNames TEXT (JSON array) na tabela tables
-- [ ] db.ts: addCompanyToTable — acumula empresa no array sem duplicar
-- [ ] db.ts: removeCompanyFromTable — remove empresa do array
-- [ ] db.ts: bulkAssignGuests — ao alocar empresa em mesa, chama addCompanyToTable
-- [ ] routers: expor addCompany e removeCompany procedures
-- [ ] FloorMap: exibir múltiplas empresas na mesa (truncado com "/ Empresa B")
-- [ ] TableDetailPanel: listar todas as empresas da mesa com botão de remover cada uma
-- [ ] Integrar SuggestNeighborDialog no FloorMap (drop com capacidade insuficiente)
-- [ ] SeatingContext: estado pendingCompanyDrop para passar dados ao dialog
-- [ ] Highlight das mesas sugeridas no mapa enquanto dialog está aberto
+- [x] Schema: adicionar coluna companyNames TEXT (JSON array) na tabela tables
+- [x] db.ts: addCompanyToTable — acumula empresa no array sem duplicar
+- [x] db.ts: removeCompanyFromTable — remove empresa do array
+- [x] db.ts: bulkAssignGuests — ao alocar empresa em mesa, chama addCompanyToTable
+- [x] routers: expor addCompany e removeCompany procedures
+- [x] FloorMap: exibir múltiplas empresas na mesa (truncado com "/ Empresa B")
+- [x] TableDetailPanel: listar todas as empresas da mesa com botão de remover cada uma
+- [x] Integrar SuggestNeighborDialog no FloorMap (drop com capacidade insuficiente)
+- [x] SeatingContext: estado pendingCompanyDrop para passar dados ao dialog
+- [x] Highlight das mesas sugeridas no mapa enquanto dialog está aberto
+
+## Mobile / iPad Optimization (v7)
+- [x] Layout fiel ao PDF DON CONCEPT — posições pixel-perfect de todas as 70 mesas
+- [x] Remover animação CSS de hover nas mesas (transition: none no círculo)
+- [x] SeatingManager: layout responsivo desktop/tablet/mobile com useIsMobile
+- [x] Sidebar colapsável via botão toggle (PanelLeftOpen/Close) em todas as telas
+- [x] Mobile: sidebar como overlay com backdrop, fecha ao clicar fora
+- [x] Mobile: painel de detalhes como bottom sheet (55vh) com drag handle
+- [x] Pinch-to-zoom no mapa (dois dedos) para iPad/touch
+- [x] Header compacto em mobile (texto menor, sem elementos ocultos)
+- [x] Zoom controls touch-friendly (botões 32×32px mínimo)
+- [x] PALCO, PISTA e LOUNGE reposicionados para corresponder ao PDF
