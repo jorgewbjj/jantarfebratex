@@ -30,7 +30,7 @@ export default function Home() {
 
   return (
     <SeatingProvider>
-      <div className="min-h-screen flex flex-col bg-[#f8f5ef]">
+      <div className="h-screen flex flex-col bg-[#f8f5ef] overflow-hidden">
         {/* Editorial header */}
         <header className="shrink-0 border-b border-[#e0d9d0] bg-[#f8f5ef]">
           <div className="px-6 py-4 flex items-end justify-between gap-4">

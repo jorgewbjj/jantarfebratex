@@ -100,7 +100,7 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
         </div>
 
         {/* Floor map */}
-        <div className="flex-1 overflow-auto p-4 bg-[#f4f0e8]">
+        <div className="flex-1 overflow-hidden bg-[#f4f0e8] relative">
           <FloorMap
             eventId={eventId}
             tables={tables}

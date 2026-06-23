@@ -57,3 +57,13 @@
 ## Capacity Rules
 - [x] Tables 10 and 44 capacity = 20; all other 68 tables capacity = 10
 - [x] Visual distinction on map for large-capacity tables (10 and 44)
+
+## Layout & UX Improvements (v2)
+- [x] Rewrite floorLayout.ts with exact DON CONCEPT PDF positions
+- [x] Company name visible on each table in the SVG map
+- [x] Zoom in/out buttons with percentage indicator
+- [x] Mouse wheel zoom support
+- [x] Pan (drag) support on the map canvas
+- [x] Touch pan support for mobile
+- [x] Tooltip shows full company name + seat count on hover
+- [x] Buffet labels, PALCO, PISTA, LOUNGE Integrado on map
