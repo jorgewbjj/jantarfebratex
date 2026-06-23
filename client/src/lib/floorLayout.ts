@@ -166,6 +166,88 @@ export function getTableCapacity(tableNumber: number): number {
   return LARGE_TABLE_NUMBERS.has(tableNumber) ? 20 : 10;
 }
 
+/**
+ * Returns tables sorted by proximity to a given table number.
+ * Optionally filters to only tables that have at least `minAvailable` free seats.
+ *
+ * @param targetNumber  The table number the user dropped on
+ * @param allTables     Live table records (with id, tableNumber, capacity)
+ * @param guestCounts   Map of tableId → current seated count
+ * @param minAvailable  Minimum free seats required (defaults to 1)
+ * @param maxResults    How many neighbors to return (defaults to 6)
+ */
+export function getNeighborTables(
+  targetNumber: number,
+  allTables: Array<{ id: number; tableNumber: number; capacity: number; companyName?: string | null }>,
+  guestCounts: Map<number, number>,
+  minAvailable = 1,
+  maxResults = 6
+): Array<{ tableNumber: number; tableId: number; available: number; capacity: number; companyName: string | null; distance: number }> {
+  const targetPos = TABLE_POSITIONS.find((p) => p.number === targetNumber);
+  if (!targetPos) return [];
+
+  return allTables
+    .filter((t) => t.tableNumber !== targetNumber)
+    .map((t) => {
+      const pos = TABLE_POSITIONS.find((p) => p.number === t.tableNumber);
+      if (!pos) return null;
+      const seated = guestCounts.get(t.id) ?? 0;
+      const available = t.capacity - seated;
+      const dx = pos.x - targetPos.x;
+      const dy = pos.y - targetPos.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      return { tableNumber: t.tableNumber, tableId: t.id, available, capacity: t.capacity, companyName: t.companyName ?? null, distance };
+    })
+    .filter((t): t is NonNullable<typeof t> => t !== null && t.available >= minAvailable)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, maxResults);
+}
+
+/**
+ * Given a target table and a company group, finds the smallest set of nearby
+ * tables (starting from the target) that together have enough free seats.
+ * Returns the tables in proximity order, or null if impossible.
+ */
+export function findTableSetForGroup(
+  targetNumber: number,
+  guestCount: number,
+  allTables: Array<{ id: number; tableNumber: number; capacity: number; companyName?: string | null }>,
+  guestCounts: Map<number, number>
+): Array<{ tableNumber: number; tableId: number; available: number; capacity: number; companyName: string | null; distance: number }> | null {
+  // Include the target table itself first
+  const targetTable = allTables.find((t) => t.tableNumber === targetNumber);
+  if (!targetTable) return null;
+
+  const targetSeated = guestCounts.get(targetTable.id) ?? 0;
+  const targetAvailable = targetTable.capacity - targetSeated;
+
+  // Get neighbors sorted by distance (including target at distance 0)
+  const targetPos = TABLE_POSITIONS.find((p) => p.number === targetNumber)!;
+  const candidates = allTables
+    .map((t) => {
+      const pos = TABLE_POSITIONS.find((p) => p.number === t.tableNumber);
+      if (!pos) return null;
+      const seated = guestCounts.get(t.id) ?? 0;
+      const available = t.capacity - seated;
+      const dx = pos.x - targetPos.x;
+      const dy = pos.y - targetPos.y;
+      const distance = t.tableNumber === targetNumber ? 0 : Math.sqrt(dx * dx + dy * dy);
+      return { tableNumber: t.tableNumber, tableId: t.id, available, capacity: t.capacity, companyName: t.companyName ?? null, distance };
+    })
+    .filter((t): t is NonNullable<typeof t> => t !== null && t.available > 0)
+    .sort((a, b) => a.distance - b.distance);
+
+  // Greedily pick nearest tables until we have enough seats
+  let totalAvailable = 0;
+  const selected: typeof candidates = [];
+  for (const candidate of candidates) {
+    selected.push(candidate);
+    totalAvailable += candidate.available;
+    if (totalAvailable >= guestCount) return selected;
+  }
+  return null; // Not enough seats in the whole venue
+}
+
 // Canvas dimensions for the SVG floor map
 export const CANVAS_WIDTH = 1060;
 export const CANVAS_HEIGHT = 700;

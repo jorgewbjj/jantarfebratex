@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
 import type { Guest } from "../../../drizzle/schema";
+import type { PendingCompanyDrop } from "@/components/SuggestNeighborDialog";
 
 export interface DraggedGuest {
   guest: Guest;
@@ -40,6 +41,14 @@ interface SeatingContextValue {
   // Export dialog
   exportDialogOpen: boolean;
   setExportDialogOpen: (open: boolean) => void;
+
+  // Pending company drop — set when capacity is exceeded, triggers SuggestNeighborDialog
+  pendingCompanyDrop: PendingCompanyDrop | null;
+  setPendingCompanyDrop: (drop: PendingCompanyDrop | null) => void;
+
+  // Tables highlighted as suggestions in SuggestNeighborDialog
+  highlightedTableIds: Set<number>;
+  setHighlightedTableIds: (ids: Set<number>) => void;
 }
 
 const SeatingContext = createContext<SeatingContextValue | null>(null);
@@ -51,6 +60,8 @@ export function SeatingProvider({ children }: { children: React.ReactNode }) {
   const [dragOverTableId, setDragOverTableId] = useState<number | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [pendingCompanyDrop, setPendingCompanyDrop] = useState<PendingCompanyDrop | null>(null);
+  const [highlightedTableIds, setHighlightedTableIds] = useState<Set<number>>(new Set());
 
   return (
     <SeatingContext.Provider
@@ -67,6 +78,10 @@ export function SeatingProvider({ children }: { children: React.ReactNode }) {
         setImportDialogOpen,
         exportDialogOpen,
         setExportDialogOpen,
+        pendingCompanyDrop,
+        setPendingCompanyDrop,
+        highlightedTableIds,
+        setHighlightedTableIds,
       }}
     >
       {children}

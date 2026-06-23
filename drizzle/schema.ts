@@ -40,7 +40,17 @@ export const tables = mysqlTable("tables", {
   id: int("id").autoincrement().primaryKey(),
   eventId: int("eventId").notNull(),
   tableNumber: int("tableNumber").notNull(), // 1-70
+  /**
+   * Legacy single-company field — kept for backward compatibility.
+   * Derived from companyNames[0] on write; used as fallback on read.
+   */
   companyName: varchar("companyName", { length: 255 }),
+  /**
+   * JSON-encoded string array of company names sharing this table.
+   * e.g. '["Empresa A","Empresa B"]'
+   * When null/empty, fall back to companyName for backward compat.
+   */
+  companyNames: text("companyNames"),
   capacity: int("capacity").default(10).notNull(),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

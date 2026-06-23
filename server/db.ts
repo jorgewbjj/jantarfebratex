@@ -93,7 +93,63 @@ export async function ensureTablesExist(eventId: number) {
 export async function updateTableCompany(tableId: number, companyName: string | null) {
   const db = await getDb();
   if (!db) return;
-  await db.update(tables).set({ companyName }).where(eq(tables.id, tableId));
+  // When setting a single company name, also reset the companyNames array
+  const companyNames = companyName ? JSON.stringify([companyName]) : null;
+  await db.update(tables).set({ companyName, companyNames }).where(eq(tables.id, tableId));
+}
+
+/**
+ * Adds a company name to the table's companyNames array (no duplicates).
+ * Also keeps the legacy companyName field in sync (first company in array).
+ */
+export async function addCompanyToTable(tableId: number, companyName: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const rows = await db.select({ companyNames: tables.companyNames, companyName: tables.companyName }).from(tables).where(eq(tables.id, tableId)).limit(1);
+  const row = rows[0];
+  if (!row) return;
+
+  // Parse existing array
+  let names: string[] = [];
+  if (row.companyNames) {
+    try { names = JSON.parse(row.companyNames); } catch { names = []; }
+  } else if (row.companyName) {
+    names = [row.companyName];
+  }
+
+  // Add only if not already present
+  if (!names.includes(companyName)) {
+    names.push(companyName);
+  }
+
+  await db.update(tables).set({
+    companyNames: JSON.stringify(names),
+    companyName: names[0] ?? null, // keep legacy field in sync
+  }).where(eq(tables.id, tableId));
+}
+
+/**
+ * Removes a company name from the table's companyNames array.
+ * Recomputes the legacy companyName field from the remaining array.
+ */
+export async function removeCompanyFromTable(tableId: number, companyName: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const rows = await db.select({ companyNames: tables.companyNames }).from(tables).where(eq(tables.id, tableId)).limit(1);
+  const row = rows[0];
+  if (!row) return;
+
+  let names: string[] = [];
+  if (row.companyNames) {
+    try { names = JSON.parse(row.companyNames); } catch { names = []; }
+  }
+
+  names = names.filter((n) => n !== companyName);
+
+  await db.update(tables).set({
+    companyNames: names.length > 0 ? JSON.stringify(names) : null,
+    companyName: names[0] ?? null,
+  }).where(eq(tables.id, tableId));
 }
 
 export async function updateTableNotes(tableId: number, notes: string | null) {
@@ -196,9 +252,9 @@ export async function bulkAssignGuests(
   // 3. Assign all guests in one update
   await db.update(guests).set({ tableId }).where(inArray(guests.id, guestIds));
 
-  // 4. Optionally set the company name on the table (only if table has no company yet)
-  if (companyName && !table.companyName) {
-    await db.update(tables).set({ companyName }).where(eq(tables.id, tableId));
+  // 4. Add company to the table's multi-company array (accumulates, no duplicates)
+  if (companyName) {
+    await addCompanyToTable(tableId, companyName);
   }
 
   return { count: guestIds.length };

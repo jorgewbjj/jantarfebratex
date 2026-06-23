@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Edit2, Check, UserMinus, UserPlus, ArrowRight, ChevronRight } from "lucide-react";
+import { X, Edit2, Check, UserMinus, UserPlus, ArrowRight, Plus, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
@@ -10,14 +10,32 @@ import type { Guest } from "../../../drizzle/schema";
 interface TableDetailPanelProps {
   eventId: number;
   tableId: number | null;
-  tables: Array<{ id: number; tableNumber: number; companyName: string | null; capacity: number }>;
+  tables: Array<{
+    id: number;
+    tableNumber: number;
+    companyName: string | null;
+    companyNames: string | null;
+    capacity: number;
+  }>;
   onClose: () => void;
+}
+
+/** Parse companyNames JSON, falling back to companyName string. */
+function parseCompanyNames(companyNames: string | null, companyName: string | null): string[] {
+  if (companyNames) {
+    try {
+      const parsed = JSON.parse(companyNames);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed as string[];
+    } catch { /* fall through */ }
+  }
+  if (companyName) return [companyName];
+  return [];
 }
 
 export default function TableDetailPanel({ eventId, tableId, tables, onClose }: TableDetailPanelProps) {
   const { setDraggedGuest } = useSeating();
-  const [editingCompany, setEditingCompany] = useState(false);
-  const [companyInput, setCompanyInput] = useState("");
+  const [addingCompany, setAddingCompany] = useState(false);
+  const [newCompanyInput, setNewCompanyInput] = useState("");
   const [addingGuest, setAddingGuest] = useState(false);
   const [newGuestName, setNewGuestName] = useState("");
   const [newGuestCompany, setNewGuestCompany] = useState("");
@@ -27,21 +45,38 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
   const utils = trpc.useUtils();
 
   const table = tables.find((t) => t.id === tableId);
+  const companyNames = table ? parseCompanyNames(table.companyNames, table.companyName) : [];
 
   const { data: guests = [], isLoading } = trpc.tables.getGuests.useQuery(
     { tableId: tableId! },
     { enabled: !!tableId }
   );
 
+  // Reset state when table changes
   useEffect(() => {
-    if (table) setCompanyInput(table.companyName ?? "");
-  }, [table?.id, table?.companyName]);
+    setAddingCompany(false);
+    setNewCompanyInput("");
+    setAddingGuest(false);
+    setNewGuestName("");
+    setNewGuestCompany("");
+    setReassigningGuest(null);
+    setReassignTarget("");
+  }, [tableId]);
 
-  const updateCompany = trpc.tables.updateCompany.useMutation({
+  const addCompanyMutation = trpc.tables.addCompany.useMutation({
     onSuccess: () => {
       utils.tables.list.invalidate();
-      setEditingCompany(false);
-      toast.success("Empresa atualizada");
+      setAddingCompany(false);
+      setNewCompanyInput("");
+      toast.success("Empresa adicionada à mesa");
+    },
+    onError: (e) => toast.error("Erro: " + e.message),
+  });
+
+  const removeCompanyMutation = trpc.tables.removeCompany.useMutation({
+    onSuccess: () => {
+      utils.tables.list.invalidate();
+      toast.success("Empresa removida da mesa");
     },
     onError: (e) => toast.error("Erro: " + e.message),
   });
@@ -95,8 +130,14 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
   const capacity = table.capacity;
   const occupancyPct = Math.round((occupancy / capacity) * 100);
 
-  const handleSaveCompany = () => {
-    updateCompany.mutate({ tableId: table.id, companyName: companyInput.trim() || null });
+  const handleAddCompany = () => {
+    const name = newCompanyInput.trim();
+    if (!name) return;
+    addCompanyMutation.mutate({ tableId: table.id, companyName: name });
+  };
+
+  const handleRemoveCompany = (name: string) => {
+    removeCompanyMutation.mutate({ tableId: table.id, companyName: name });
   };
 
   const handleRemoveFromTable = (guest: Guest) => {
@@ -105,8 +146,6 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
 
   const handleReassign = () => {
     if (!reassigningGuest || !reassignTarget) return;
-    const targetTable = tables.find((t) => t.id === Number(reassignTarget));
-    if (!targetTable) return;
     assignMutation.mutate({ guestId: reassigningGuest.id, tableId: Number(reassignTarget) });
   };
 
@@ -145,36 +184,78 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
           </Button>
         </div>
 
-        {/* Company */}
+        {/* Companies section — multi-company */}
         <div className="mt-4">
-          <p className="editorial-label text-[#8a7f72] mb-1.5">Empresa</p>
-          {editingCompany ? (
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="editorial-label text-[#8a7f72] flex items-center gap-1.5">
+              <Building2 size={11} />
+              {companyNames.length > 1 ? "Empresas" : "Empresa"}
+            </p>
+            <button
+              onClick={() => setAddingCompany(!addingCompany)}
+              className="flex items-center gap-1 text-[10px] text-[#8a7f72] hover:text-[#1c1917] transition-colors"
+              title="Adicionar empresa"
+            >
+              <Plus size={11} />
+              Adicionar
+            </button>
+          </div>
+
+          {/* Company tags */}
+          {companyNames.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {companyNames.map((name) => (
+                <span
+                  key={name}
+                  className="group inline-flex items-center gap-1 px-2.5 py-1 bg-[#1c1917] text-white text-xs font-medium rounded-full"
+                >
+                  <span className="font-display italic">{name}</span>
+                  <button
+                    onClick={() => handleRemoveCompany(name)}
+                    className="opacity-40 hover:opacity-100 transition-opacity ml-0.5"
+                    title={`Remover ${name}`}
+                    disabled={removeCompanyMutation.isPending}
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[#b0a89e] italic mb-2">Sem empresa atribuída</p>
+          )}
+
+          {/* Add company form */}
+          {addingCompany && (
+            <div className="flex gap-2 mt-1">
               <Input
-                value={companyInput}
-                onChange={(e) => setCompanyInput(e.target.value)}
+                value={newCompanyInput}
+                onChange={(e) => setNewCompanyInput(e.target.value)}
                 placeholder="Nome da empresa"
                 className="h-8 text-sm bg-white border-[#c8bfb0] focus:border-[#1c1917]"
                 autoFocus
-                onKeyDown={(e) => e.key === "Enter" && handleSaveCompany()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddCompany();
+                  if (e.key === "Escape") { setAddingCompany(false); setNewCompanyInput(""); }
+                }}
               />
-              <Button size="icon" className="h-8 w-8 bg-[#1c1917] hover:bg-[#2c2520]" onClick={handleSaveCompany}>
+              <Button
+                size="icon"
+                className="h-8 w-8 bg-[#1c1917] hover:bg-[#2c2520] shrink-0"
+                onClick={handleAddCompany}
+                disabled={!newCompanyInput.trim() || addCompanyMutation.isPending}
+              >
                 <Check size={14} />
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingCompany(false)}>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 shrink-0"
+                onClick={() => { setAddingCompany(false); setNewCompanyInput(""); }}
+              >
                 <X size={14} />
               </Button>
             </div>
-          ) : (
-            <button
-              onClick={() => setEditingCompany(true)}
-              className="flex items-center gap-2 group w-full text-left"
-            >
-              <span className="font-display text-lg text-[#1c1917] italic">
-                {table.companyName || <span className="text-[#b0a89e] not-italic text-sm">Sem empresa atribuída</span>}
-              </span>
-              <Edit2 size={12} className="text-[#b0a89e] opacity-0 group-hover:opacity-100 transition-opacity" />
-            </button>
           )}
         </div>
 
@@ -256,19 +337,22 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
             </p>
             <select
               value={reassignTarget}
-              onChange={(e) => setReassignTarget(e.target.value as number | "")}
+              onChange={(e) => setReassignTarget(e.target.value as unknown as number | "")}
               className="w-full h-8 text-sm border border-[#c8bfb0] rounded-sm bg-white px-2 mb-2"
             >
               <option value="">Selecione uma mesa...</option>
               {tables
                 .filter((t) => t.id !== table.id)
                 .sort((a, b) => a.tableNumber - b.tableNumber)
-                .map((t) => (
-                  <option key={t.id} value={t.id}>
-                    Mesa {String(t.tableNumber).padStart(2, "0")}
-                    {t.companyName ? ` — ${t.companyName}` : ""}
-                  </option>
-                ))}
+                .map((t) => {
+                  const names = parseCompanyNames(t.companyNames, t.companyName);
+                  const label = names.length > 0 ? ` — ${names.join(" / ")}` : "";
+                  return (
+                    <option key={t.id} value={t.id}>
+                      Mesa {String(t.tableNumber).padStart(2, "0")}{label}
+                    </option>
+                  );
+                })}
             </select>
             <div className="flex gap-2">
               <Button

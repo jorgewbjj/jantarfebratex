@@ -3,6 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
+  addCompanyToTable,
   addGuest,
   assignGuestToTable,
   bulkAssignGuests,
@@ -15,6 +16,7 @@ import {
   getTablesForEvent,
   getUnassignedGuests,
   ensureTablesExist,
+  removeCompanyFromTable,
   updateGuest,
   updateTableCapacity,
   updateTableCompany,
@@ -70,6 +72,20 @@ export const appRouter = router({
       .input(z.object({ tableId: z.number(), capacity: z.number().min(1).max(30) }))
       .mutation(async ({ input }) => {
         await updateTableCapacity(input.tableId, input.capacity);
+        return { success: true };
+      }),
+
+    addCompany: publicProcedure
+      .input(z.object({ tableId: z.number(), companyName: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        await addCompanyToTable(input.tableId, input.companyName);
+        return { success: true };
+      }),
+
+    removeCompany: publicProcedure
+      .input(z.object({ tableId: z.number(), companyName: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        await removeCompanyFromTable(input.tableId, input.companyName);
         return { success: true };
       }),
 

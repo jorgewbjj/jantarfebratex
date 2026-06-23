@@ -5,11 +5,13 @@ import {
   TABLE_POSITIONS,
   TABLE_RADIUS_NORMAL,
   TABLE_RADIUS_LARGE,
+  findTableSetForGroup,
 } from "@/lib/floorLayout";
 import { useSeating } from "@/contexts/SeatingContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import SuggestNeighborDialog from "@/components/SuggestNeighborDialog";
 
 interface FloorMapProps {
   eventId: number;
@@ -17,6 +19,7 @@ interface FloorMapProps {
     id: number;
     tableNumber: number;
     companyName: string | null;
+    companyNames: string | null; // JSON array of company names
     capacity: number;
   }>;
   guestCounts: Map<number, number>; // tableId → count
@@ -27,6 +30,38 @@ function getTableStatus(count: number, capacity: number): "empty" | "partial" | 
   if (count === 0) return "empty";
   if (count >= capacity) return "full";
   return "partial";
+}
+
+/** Parse the companyNames JSON field, falling back to companyName string. */
+function parseCompanyNames(companyNames: string | null, companyName: string | null): string[] {
+  if (companyNames) {
+    try {
+      const parsed = JSON.parse(companyNames);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed as string[];
+    } catch { /* fall through */ }
+  }
+  if (companyName) return [companyName];
+  return [];
+}
+
+/** Render company names for a table circle — up to 2 lines. */
+function formatCompanyDisplay(names: string[], maxChars: number): { line1: string; line2: string | null } {
+  if (names.length === 0) return { line1: "", line2: null };
+  if (names.length === 1) {
+    const n = names[0];
+    return { line1: n.length > maxChars ? n.slice(0, maxChars - 1) + "…" : n, line2: null };
+  }
+  // Multiple companies: "Empresa A / Empresa B"
+  const joined = names.join(" / ");
+  if (joined.length <= maxChars * 2) {
+    // Try to split across two lines at the slash
+    const mid = names[0].length > maxChars ? names[0].slice(0, maxChars - 1) + "…" : names[0];
+    const rest = names.slice(1).join(" / ");
+    const rest2 = rest.length > maxChars ? rest.slice(0, maxChars - 1) + "…" : rest;
+    return { line1: mid, line2: `/ ${rest2}` };
+  }
+  const first = names[0].length > maxChars - 2 ? names[0].slice(0, maxChars - 3) + "…" : names[0];
+  return { line1: first, line2: `+${names.length - 1} empresa${names.length - 1 > 1 ? "s" : ""}` };
 }
 
 const STATUS_FILL: Record<string, string> = {
@@ -54,6 +89,10 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
     setDraggedCompany,
     dragOverTableId,
     setDragOverTableId,
+    pendingCompanyDrop,
+    setPendingCompanyDrop,
+    highlightedTableIds,
+    setHighlightedTableIds,
   } = useSeating();
   const utils = trpc.useUtils();
   const [tooltip, setTooltip] = useState<{ x: number; y: number; tableId: number } | null>(null);
@@ -101,7 +140,7 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
     setPan({ x: 0, y: 0 });
   };
 
-  // Mouse wheel zoom (centered on cursor)
+  // Mouse wheel zoom
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
@@ -122,7 +161,6 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
   // Pan via mouse drag
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
-    // Only pan if not clicking a table (tables have their own onClick)
     const target = e.target as SVGElement;
     if (target.closest(".table-node")) return;
     isPanning.current = true;
@@ -186,6 +224,9 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
 
   const tableByNumber = new Map(tables.map((t) => [t.tableNumber, t]));
 
+  // Build guestCounts as Map<tableId, number> for findTableSetForGroup
+  const guestCountsForAlgo = guestCounts;
+
   const handleDragOver = (e: React.DragEvent, tableId: number) => {
     if (!draggedGuest && !draggedCompany) return;
     e.preventDefault();
@@ -202,17 +243,36 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
       if (!table) { setDraggedCompany(null); return; }
       const currentCount = guestCounts.get(tableId) ?? 0;
       const available = table.capacity - currentCount;
-      if (draggedCompany.guestCount > available) {
-        toast.error(
-          `Capacidade insuficiente: mesa ${table.tableNumber} tem ${available} lugar${available !== 1 ? "es" : ""} disponível${available !== 1 ? "is" : ""}, mas "${draggedCompany.companyName}" tem ${draggedCompany.guestCount} convidado${draggedCompany.guestCount !== 1 ? "s" : ""}.`
-        );
+
+      if (draggedCompany.guestCount <= available) {
+        // Fits! Assign directly.
+        bulkAssignMutation.mutate({
+          guestIds: draggedCompany.guestIds,
+          tableId,
+          companyName: draggedCompany.companyName,
+        });
         setDraggedCompany(null);
+        setHighlightedTableIds(new Set());
         return;
       }
-      bulkAssignMutation.mutate({
-        guestIds: draggedCompany.guestIds,
-        tableId,
+
+      // Doesn't fit — compute suggestion and open dialog
+      const suggestion = findTableSetForGroup(
+        table.tableNumber,
+        draggedCompany.guestCount,
+        tables,
+        guestCountsForAlgo
+      );
+
+      // Highlight suggested tables on the map
+      if (suggestion) {
+        setHighlightedTableIds(new Set(suggestion.map((s) => s.tableId)));
+      }
+
+      setPendingCompanyDrop({
         companyName: draggedCompany.companyName,
+        guestIds: draggedCompany.guestIds,
+        targetTableNumber: table.tableNumber,
       });
       setDraggedCompany(null);
       return;
@@ -233,13 +293,6 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
   };
 
   const handleDragLeave = () => setDragOverTableId(null);
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  // Truncate company name to fit inside the table circle
-  function truncateCompany(name: string, maxChars: number): string {
-    if (!name) return "";
-    return name.length > maxChars ? name.slice(0, maxChars - 1) + "…" : name;
-  }
 
   return (
     <div className="relative w-full h-full flex flex-col" style={{ minHeight: 0 }}>
@@ -354,36 +407,46 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
               const radius = pos.large ? TABLE_RADIUS_LARGE : TABLE_RADIUS_NORMAL;
               const isSelected = selectedTableId === table.id;
               const isDragOver = dragOverTableId === table.id;
+              const isHighlighted = highlightedTableIds.has(table.id);
+
+              // Company names (multi-company support)
+              const companyNames = parseCompanyNames(table.companyNames, table.companyName);
+              const maxChars = pos.large ? 14 : 10;
+              const { line1: companyLine1, line2: companyLine2 } = formatCompanyDisplay(companyNames, maxChars);
+              const hasCompany = companyLine1.length > 0;
 
               // When dragging a company group, compute capacity state for visual feedback
               const available = table.capacity - count;
-              const groupWouldFit = draggedCompany ? draggedCompany.guestCount <= available : true;
+              const groupWouldFit = draggedCompany ? draggedCompany.guestCount <= available : false;
               const isGroupDragOver = isDragOver && !!draggedCompany;
 
               const fill = isGroupDragOver
-                ? (groupWouldFit ? "#bbf7d0" : "#fecaca")  // green=ok, red=too many
+                ? (groupWouldFit ? "#bbf7d0" : "#fecaca")
+                : isHighlighted ? "#fef3c7"   // amber highlight for suggested tables
                 : isDragOver ? "#bfdbfe"
                 : isSelected ? "#1c1917"
                 : STATUS_FILL[status];
               const stroke = isGroupDragOver
                 ? (groupWouldFit ? "#4ade80" : "#f87171")
+                : isHighlighted ? "#f59e0b"
                 : isDragOver ? "#3b82f6"
                 : isSelected ? "#1c1917"
                 : STATUS_STROKE[status];
+              const strokeWidth = isSelected || isDragOver || isHighlighted ? 2.5 : 1.5;
               const textColor = isSelected ? "#f8f5ef" : "#1c1917";
               const subColor = isSelected ? "#d6d3d1" : "#8a7f72";
               const companyColor = isSelected ? "#e7e5e4" : "#5a4f44";
 
-              // Company name display — 2 lines if needed
-              const company = table.companyName ?? "";
-              const maxChars = pos.large ? 14 : 10;
-              const companyLine1 = truncateCompany(company, maxChars);
+              // Vertical layout: number, company line1, company line2 (if any), count
+              const totalLines = 1 + (hasCompany ? 1 : 0) + (companyLine2 ? 1 : 0) + 1;
+              const lineH = pos.large ? 9 : 8;
+              const totalH = (totalLines - 1) * lineH;
+              let currentY = pos.y - totalH / 2;
 
-              // Layout: number at top, company in middle, count at bottom
-              const hasCompany = company.length > 0;
-              const numY = pos.y + (hasCompany ? -10 : -4);
-              const companyY = pos.y + 4;
-              const countY = pos.y + (hasCompany ? 15 : 8);
+              const numY = currentY; currentY += lineH;
+              const c1Y = hasCompany ? currentY : null; if (hasCompany) currentY += lineH;
+              const c2Y = companyLine2 ? currentY : null; if (companyLine2) currentY += lineH;
+              const countY = currentY;
 
               return (
                 <g
@@ -397,7 +460,7 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
                   onMouseEnter={() => setTooltip({ x: pos.x, y: pos.y, tableId: table.id })}
                   onMouseLeave={() => setTooltip(null)}
                   role="button"
-                  aria-label={`Mesa ${pos.number}${company ? ` — ${company}` : ""}, ${count}/${table.capacity} lugares`}
+                  aria-label={`Mesa ${pos.number}${hasCompany ? ` — ${companyNames.join(", ")}` : ""}, ${count}/${table.capacity} lugares`}
                   tabIndex={0}
                   onKeyDown={(e) => e.key === "Enter" && onTableClick(table.id)}
                 >
@@ -427,7 +490,7 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
                     r={radius}
                     fill={fill}
                     stroke={stroke}
-                    strokeWidth={isSelected || isDragOver ? 2.5 : 1.5}
+                    strokeWidth={strokeWidth}
                   />
 
                   {/* Large table inner ring */}
@@ -440,6 +503,20 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
                       stroke={isSelected ? "#a8a29e" : "#c8bfb0"}
                       strokeWidth={1}
                       strokeDasharray="3 2"
+                    />
+                  )}
+
+                  {/* Highlight ring for suggested tables */}
+                  {isHighlighted && (
+                    <circle
+                      cx={pos.x}
+                      cy={pos.y}
+                      r={radius + 5}
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth={2}
+                      strokeDasharray="4 3"
+                      opacity={0.7}
                     />
                   )}
 
@@ -458,11 +535,11 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
                     {String(pos.number).padStart(2, "0")}
                   </text>
 
-                  {/* Company name — shown directly on the table */}
-                  {hasCompany && (
+                  {/* Company line 1 */}
+                  {c1Y !== null && (
                     <text
                       x={pos.x}
-                      y={companyY + 4}
+                      y={c1Y + 4}
                       textAnchor="middle"
                       dominantBaseline="middle"
                       fontSize={pos.large ? 7.5 : 6.5}
@@ -473,6 +550,24 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
                       style={{ pointerEvents: "none" }}
                     >
                       {companyLine1}
+                    </text>
+                  )}
+
+                  {/* Company line 2 (second company or overflow indicator) */}
+                  {c2Y !== null && companyLine2 && (
+                    <text
+                      x={pos.x}
+                      y={c2Y + 4}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize={pos.large ? 7 : 6}
+                      fontWeight="500"
+                      fill={isSelected ? "#c8c5c1" : "#8a7f72"}
+                      fontFamily="DM Sans, sans-serif"
+                      letterSpacing="0.02em"
+                      style={{ pointerEvents: "none" }}
+                    >
+                      {companyLine2}
                     </text>
                   )}
 
@@ -529,14 +624,15 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
               if (!t || !pos) return null;
               const cnt = guestCounts.get(t.id) ?? 0;
               const radius = pos.large ? TABLE_RADIUS_LARGE : TABLE_RADIUS_NORMAL;
-              const company = t.companyName ?? "Sem empresa";
-              const tw = Math.max(company.length * 6.2 + 20, 100);
+              const names = parseCompanyNames(t.companyNames, t.companyName);
+              const displayName = names.length > 0 ? names.join(" / ") : "Sem empresa";
+              const tw = Math.max(displayName.length * 5.8 + 20, 100);
               const tx = Math.min(Math.max(pos.x - tw / 2, 58), CANVAS_WIDTH - tw - 58);
               const ty = pos.y - radius - 42;
               return (
                 <g style={{ pointerEvents: "none" }}>
                   <rect x={tx} y={ty} width={tw} height={32} rx={4} fill="#1c1917" opacity={0.92} />
-                  <text x={tx + tw / 2} y={ty + 12} textAnchor="middle" fontSize={8} fill="#f8f5ef" fontFamily="DM Sans, sans-serif" fontWeight="600">{company}</text>
+                  <text x={tx + tw / 2} y={ty + 12} textAnchor="middle" fontSize={8} fill="#f8f5ef" fontFamily="DM Sans, sans-serif" fontWeight="600">{displayName.length > 40 ? displayName.slice(0, 39) + "…" : displayName}</text>
                   <text x={tx + tw / 2} y={ty + 24} textAnchor="middle" fontSize={7} fill="#a8a29e" fontFamily="DM Sans, sans-serif">Mesa {pos.number} · {cnt}/{t.capacity} lugares</text>
                 </g>
               );
@@ -565,6 +661,18 @@ export default function FloorMap({ eventId, tables, guestCounts, onTableClick }:
           Scroll para zoom · Arraste para mover · Clique numa mesa para detalhes
         </p>
       </div>
+
+      {/* Suggest Neighbor Dialog — opens when company group doesn't fit */}
+      <SuggestNeighborDialog
+        open={!!pendingCompanyDrop}
+        onClose={() => {
+          setPendingCompanyDrop(null);
+          setHighlightedTableIds(new Set());
+        }}
+        pending={pendingCompanyDrop}
+        allTables={tables}
+        guestCounts={guestCounts}
+      />
     </div>
   );
 }

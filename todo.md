@@ -85,3 +85,23 @@
 - [x] FloorMap: bloquear drop quando convidados > vagas disponíveis na mesa (toast de erro)
 - [x] FloorMap: ao soltar empresa na mesa, atribuir companyName automaticamente se mesa estiver vazia
 - [x] TableDetailPanel: deixar claro como editar nome da empresa na mesa
+
+## Sugestão de Mesas Vizinhas (v5)
+- [ ] Algoritmo de mesas vizinhas em floorLayout.ts (distância euclidiana entre posições SVG)
+- [ ] SuggestNeighborDialog: modal mostrando mesas vizinhas com vagas disponíveis
+- [ ] Highlight das mesas sugeridas no mapa enquanto o dialog está aberto
+- [ ] Ação "Distribuir" no dialog: aloca convidados nas mesas sugeridas em sequência
+- [ ] SeatingContext: estado pendingCompanyDrop para passar dados do drop para o dialog
+- [ ] Integração no handleDrop do FloorMap: ao falhar por capacidade, abrir dialog de sugestão
+
+## Múltiplas Empresas por Mesa (v6)
+- [ ] Schema: adicionar coluna companyNames TEXT (JSON array) na tabela tables
+- [ ] db.ts: addCompanyToTable — acumula empresa no array sem duplicar
+- [ ] db.ts: removeCompanyFromTable — remove empresa do array
+- [ ] db.ts: bulkAssignGuests — ao alocar empresa em mesa, chama addCompanyToTable
+- [ ] routers: expor addCompany e removeCompany procedures
+- [ ] FloorMap: exibir múltiplas empresas na mesa (truncado com "/ Empresa B")
+- [ ] TableDetailPanel: listar todas as empresas da mesa com botão de remover cada uma
+- [ ] Integrar SuggestNeighborDialog no FloorMap (drop com capacidade insuficiente)
+- [ ] SeatingContext: estado pendingCompanyDrop para passar dados ao dialog
+- [ ] Highlight das mesas sugeridas no mapa enquanto dialog está aberto
