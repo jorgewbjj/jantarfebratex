@@ -67,3 +67,11 @@
 - [x] Touch pan support for mobile
 - [x] Tooltip shows full company name + seat count on hover
 - [x] Buffet labels, PALCO, PISTA, LOUNGE Integrado on map
+
+## Import XLS — Formato Fixo (v3)
+- [x] Parser XLS: coluna 1 = Empresa, coluna 2 = Convidado (sem mapeamento manual)
+- [x] Ignorar linha de cabeçalho automaticamente se detectada
+- [x] Validação: alertar linhas com empresa ou nome vazio
+- [x] UI simplificada: sem step "map", vai direto para preview
+- [x] Botão para baixar template XLS de exemplo
+- [x] Mostrar contagem de empresas únicas na preview
