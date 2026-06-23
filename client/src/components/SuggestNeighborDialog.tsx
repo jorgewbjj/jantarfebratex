@@ -9,6 +9,10 @@
  *   - Fill the target table first (if it has any free seats).
  *   - Then fill the next nearest table, and so on.
  *   - Each table gets the company name assigned automatically if it is empty.
+ *
+ * IMPORTANT: ALL hooks must be called unconditionally (before any early return)
+ * to comply with React's Rules of Hooks. The early-return guard was the root
+ * cause of the "Rendered fewer hooks than expected" runtime error.
  */
 
 import React, { useMemo } from "react";
@@ -53,9 +57,10 @@ export default function SuggestNeighborDialog({
   allTables,
   guestCounts,
 }: SuggestNeighborDialogProps) {
+  // ── ALL hooks must be called unconditionally ──────────────────────────────
   const utils = trpc.useUtils();
 
-  // Compute the suggested table set
+  // Compute the suggested table set (null when pending is null → dialog is closed)
   const suggestion = useMemo(() => {
     if (!pending) return null;
     return findTableSetForGroup(
@@ -66,6 +71,19 @@ export default function SuggestNeighborDialog({
     );
   }, [pending, allTables, guestCounts]);
 
+  // Build the distribution plan: assign guests to tables in order
+  const distributionPlan = useMemo(() => {
+    if (!suggestion || !pending) return [];
+    let remaining = [...pending.guestIds];
+    return suggestion
+      .map((table) => {
+        const chunk = remaining.slice(0, table.available);
+        remaining = remaining.slice(table.available);
+        return { ...table, assignedIds: chunk };
+      })
+      .filter((t) => t.assignedIds.length > 0);
+  }, [suggestion, pending]);
+
   const bulkAssignMutation = trpc.guests.bulkAssign.useMutation({
     onSuccess: () => {
       utils.guests.unassigned.invalidate();
@@ -75,29 +93,20 @@ export default function SuggestNeighborDialog({
     },
     onError: (err) => toast.error(err.message),
   });
+  // ── End of hooks section ──────────────────────────────────────────────────
 
-  if (!pending) return null;
-
+  // Derived values (safe to compute after all hooks)
   const totalAvailable = suggestion
     ? suggestion.reduce((sum, t) => sum + t.available, 0)
     : 0;
-  const canFit = suggestion !== null && totalAvailable >= pending.guestIds.length;
-
-  // Build the distribution plan: assign guests to tables in order
-  const distributionPlan = useMemo(() => {
-    if (!suggestion || !pending) return [];
-    let remaining = [...pending.guestIds];
-    return suggestion.map((table) => {
-      const chunk = remaining.slice(0, table.available);
-      remaining = remaining.slice(table.available);
-      return { ...table, assignedIds: chunk };
-    }).filter((t) => t.assignedIds.length > 0);
-  }, [suggestion, pending]);
+  const canFit =
+    suggestion !== null &&
+    pending !== null &&
+    totalAvailable >= (pending?.guestIds.length ?? 0);
 
   const handleConfirm = async () => {
     if (!pending || distributionPlan.length === 0) return;
 
-    // Fire all bulkAssign mutations in sequence
     let successCount = 0;
     for (const plan of distributionPlan) {
       try {
@@ -120,6 +129,16 @@ export default function SuggestNeighborDialog({
     onClose();
   };
 
+  // Render nothing when there is no pending drop (dialog is closed)
+  // NOTE: this return is AFTER all hooks — this is correct and safe.
+  if (!pending) {
+    return (
+      <Dialog open={false} onOpenChange={() => {}}>
+        <DialogContent />
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md bg-[#f8f5ef] border-[#e0d9d0]">
@@ -131,9 +150,14 @@ export default function SuggestNeighborDialog({
           <DialogDescription className="text-[#6b5e52] text-sm leading-relaxed">
             <strong className="text-[#1c1917]">"{pending.companyName}"</strong> tem{" "}
             <strong>{pending.guestIds.length} convidados</strong> mas a mesa{" "}
-            <strong>{String(pending.targetTableNumber).padStart(2, "0")}</strong> não tem vagas suficientes.
+            <strong>{String(pending.targetTableNumber).padStart(2, "0")}</strong> não tem vagas
+            suficientes.
             {canFit ? (
-              <> Sugerimos distribuir nas <strong>{distributionPlan.length} mesas mais próximas</strong> abaixo.</>
+              <>
+                {" "}
+                Sugerimos distribuir nas{" "}
+                <strong>{distributionPlan.length} mesas mais próximas</strong> abaixo.
+              </>
             ) : (
               <> Não há vagas suficientes no salão para acomodar todos.</>
             )}
@@ -156,12 +180,15 @@ export default function SuggestNeighborDialog({
 
                 <div className="flex-1 min-w-0">
                   {plan.companyName ? (
-                    <p className="text-xs font-semibold text-[#1c1917] truncate">{plan.companyName}</p>
+                    <p className="text-xs font-semibold text-[#1c1917] truncate">
+                      {plan.companyName}
+                    </p>
                   ) : (
                     <p className="text-xs text-[#b0a89e] italic">Mesa vazia</p>
                   )}
                   <p className="text-[11px] text-[#8a7f72]">
-                    {plan.available} lugar{plan.available !== 1 ? "es" : ""} disponível{plan.available !== 1 ? "is" : ""}
+                    {plan.available} lugar{plan.available !== 1 ? "es" : ""} disponível
+                    {plan.available !== 1 ? "is" : ""}
                   </p>
                 </div>
 
@@ -179,7 +206,10 @@ export default function SuggestNeighborDialog({
             {/* Summary */}
             <div className="flex items-center justify-between px-3 py-2 bg-[#e8e2d8] rounded-sm mt-1">
               <span className="text-xs text-[#6b5e52] font-medium">Total a alocar</span>
-              <Badge variant="outline" className="border-[#c8bfb0] text-[#1c1917] font-semibold">
+              <Badge
+                variant="outline"
+                className="border-[#c8bfb0] text-[#1c1917] font-semibold"
+              >
                 {pending.guestIds.length} convidados · {distributionPlan.length} mesas
               </Badge>
             </div>
