@@ -46,6 +46,7 @@
     "@trpc/client": "^11.6.0",
     "@trpc/react-query": "^11.6.0",
     "@trpc/server": "^11.6.0",
+    "@types/multer": "^2.1.0",
     "axios": "^1.12.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -59,7 +60,10 @@
     "framer-motion": "^12.23.22",
     "input-otp": "^1.4.2",
     "jose": "6.1.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.453.0",
+    "multer": "^2.2.0",
     "mysql2": "^3.15.0",
     "nanoid": "^5.1.5",
     "next-themes": "^0.4.6",
@@ -76,6 +80,7 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
+    "xlsx": "^0.18.5",
     "zod": "^4.1.12"
   },
   "devDependencies": {

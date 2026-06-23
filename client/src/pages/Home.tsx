@@ -1,31 +1,71 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { getLoginUrl } from "@/const";
-import { Streamdown } from 'streamdown';
+import React from "react";
+import { trpc } from "@/lib/trpc";
+import SeatingManager from "./SeatingManager";
+import { SeatingProvider } from "@/contexts/SeatingContext";
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Workflow, Frontend Best Practices, Design Guide and Common Pitfalls
- */
 export default function Home() {
-  // The userAuth hooks provides authentication state
-  // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
-  let { user, loading, error, isAuthenticated, logout } = useAuth();
+  const { data: event, isLoading, error } = trpc.event.getDefault.useQuery();
 
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8f5ef] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-[#c8bfb0] border-t-[#1c1917] rounded-full animate-spin mx-auto mb-6" />
+          <p className="font-display text-2xl italic text-[#8a7f72]">Carregando evento...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !event) {
+    return (
+      <div className="min-h-screen bg-[#f8f5ef] flex items-center justify-center">
+        <div className="text-center max-w-sm">
+          <p className="font-serif text-2xl font-bold text-[#1c1917] mb-2">Erro ao carregar</p>
+          <p className="text-sm text-[#8a7f72]">{error?.message ?? "Evento não encontrado"}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
-    </div>
+    <SeatingProvider>
+      <div className="min-h-screen flex flex-col bg-[#f8f5ef]">
+        {/* Editorial header */}
+        <header className="shrink-0 border-b border-[#e0d9d0] bg-[#f8f5ef]">
+          <div className="px-6 py-4 flex items-end justify-between gap-4">
+            {/* Left: event name + label */}
+            <div className="flex items-end gap-6">
+              <div>
+                <p className="editorial-label text-[#b0a89e] mb-1">Layout Corporativo</p>
+                <h1 className="editorial-headline text-4xl md:text-5xl text-[#1c1917] leading-none">
+                  {event.name}
+                </h1>
+              </div>
+              <div className="hidden md:block pb-1">
+                <div className="rule-line w-16 mb-1" />
+                <p className="font-display text-base italic text-[#8a7f72]">
+                  Gerenciador de Assentos
+                </p>
+              </div>
+            </div>
+
+            {/* Right: fine details */}
+            <div className="text-right hidden sm:block">
+              <p className="editorial-label text-[#b0a89e]">70 Mesas</p>
+              <p className="font-display text-sm italic text-[#8a7f72]">
+                Mesas 10 &amp; 44 — 20 lugares
+              </p>
+            </div>
+          </div>
+
+          {/* Geometric rule */}
+          <div className="h-px bg-gradient-to-r from-transparent via-[#c8bfb0] to-transparent" />
+        </header>
+
+        {/* Main content */}
+        <SeatingManager eventId={event.id} />
+      </div>
+    </SeatingProvider>
   );
 }
