@@ -1,25 +1,30 @@
 // DON CONCEPT floor layout — 70 tables
 // Pixel-perfect recreation of StudioCaso_DON_CONCEPT_HANIERR01NUMERADO.pdf
-// Canvas: 1060×660 virtual units (main hall only, not the outdoor area)
+//
+// Canvas: 1060 × 680 virtual units (main hall only)
 // Tables 10 and 44 have capacity 20; all others have capacity 10.
 //
-// COORDINATE SYSTEM (derived from PDF 1:100 scale plan):
+// COORDINATE SYSTEM (derived from PDF 1:100 scale plan, verified against
+// the numbered screenshot provided by the user):
+//
+// The hall is divided into two blocks separated by the central dance-floor
+// / lounge area (roughly x 430–630).
 //
 // LEFT BLOCK columns (x):
-//   Col A (23,24,34):           x = 95
-//   Col B (04,05,14,15,22,25,33): x = 155
-//   Col C (03,06,13,16,21,26,31): x = 215
-//   Col D (02,07,12,17,20,27,32): x = 275
-//   Col E (01,08,11,18,19,28,30): x = 335
-//   Col F (09,10,29):            x = 395
+//   Col A (23,24,34):              x =  95
+//   Col B (04,05,14,15,22,25,33):  x = 155
+//   Col C (03,06,13,16,21,26,31):  x = 215
+//   Col D (02,07,12,17,20,27,32):  x = 275
+//   Col E (01,08,11,18,19,28,30):  x = 335
+//   Col F (09,10,29):              x = 395
 //
 // RIGHT BLOCK columns (x):
-//   Col G (43,44,54,65,64,66):   x = 615
-//   Col H (35,42,45,53,55,63,67): x = 675
-//   Col I (36,41,46,52,56,62,68): x = 735
-//   Col J (40,47,51,57,61,69):   x = 795
-//   Col K (37,39,48,50,58,60,70): x = 855
-//   Col L (38,49,59):            x = 915
+//   Col G (43,44,54,65,64,66):     x = 615
+//   Col H (35,42,45,53,55,63,67):  x = 675
+//   Col I (36,41,46,52,56,62,68):  x = 735
+//   Col J (40,47,51,57,61,69):     x = 795
+//   Col K (37,39,48,50,58,60,70):  x = 855
+//   Col L (38,49,59):              x = 915
 //
 // ROW Y positions:
 //   Row 1: y = 115
@@ -97,7 +102,7 @@ export const TABLE_POSITIONS: TablePosition[] = [
   // RIGHT BLOCK
   // ══════════════════════════════════════════════════════
 
-  // ── ROW 1 (y=115): 35, 36, (gap at 795), 37
+  // ── ROW 1 (y=115): 35, 36, (gap), 37
   { number: 35, x: 675, y: 115 },
   { number: 36, x: 735, y: 115 },
   { number: 37, x: 855, y: 115 },
@@ -231,8 +236,16 @@ export function findTableSetForGroup(
 
 // Canvas dimensions for the SVG floor map
 export const CANVAS_WIDTH = 1060;
-export const CANVAS_HEIGHT = 660;
+export const CANVAS_HEIGHT = 680;
 
-// Table visual radius
+// Table visual radii
 export const TABLE_RADIUS_NORMAL = 28;
-export const TABLE_RADIUS_LARGE = 38;
+export const TABLE_RADIUS_LARGE  = 40;
+
+// Chair geometry
+export const CHAIR_RADIUS_NORMAL = 5;
+export const CHAIR_RADIUS_LARGE  = 6;
+export const CHAIR_ORBIT_NORMAL  = 38;  // distance from table centre to chair centre
+export const CHAIR_ORBIT_LARGE   = 54;
+export const CHAIR_COUNT_NORMAL  = 10;
+export const CHAIR_COUNT_LARGE   = 16;  // visual only (capacity is 20)
