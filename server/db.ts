@@ -291,3 +291,53 @@ export async function getSeatingReport(eventId: number) {
     unassigned,
   };
 }
+
+/**
+ * Returns a per-company summary for the report page.
+ * Each entry lists: company name, tables assigned, guest count, total capacity.
+ */
+export async function getCompanyReport(eventId: number): Promise<Array<{
+  company: string;
+  tableNumbers: number[];
+  guestCount: number;
+  totalCapacity: number;
+  guests: Array<{ id: number; name: string; tableNumber: number }>;
+}>> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const allTables = await db.select().from(tables).where(eq(tables.eventId, eventId));
+  const allGuests = await db.select().from(guests).where(eq(guests.eventId, eventId));
+
+  // Map tableId → tableNumber + capacity
+  const tableMap = new Map<number, { tableNumber: number; capacity: number; companyName: string | null; companyNames: string | null }>();
+  for (const t of allTables) tableMap.set(t.id, { tableNumber: t.tableNumber, capacity: t.capacity, companyName: t.companyName, companyNames: t.companyNames });
+
+  // Group guests by company (from guest.company field)
+  const byCompany = new Map<string, { tableIds: Set<number>; guests: Array<{ id: number; name: string; tableNumber: number }> }>();
+
+  for (const g of allGuests) {
+    if (g.tableId == null) continue; // skip unassigned
+    const companyKey = g.company?.trim() || "— Sem empresa —";
+    if (!byCompany.has(companyKey)) byCompany.set(companyKey, { tableIds: new Set(), guests: [] });
+    const entry = byCompany.get(companyKey)!;
+    entry.tableIds.add(g.tableId);
+    const tInfo = tableMap.get(g.tableId);
+    entry.guests.push({ id: g.id, name: g.name, tableNumber: tInfo?.tableNumber ?? 0 });
+  }
+
+  // Build result sorted alphabetically
+  return Array.from(byCompany.entries())
+    .map(([company, { tableIds, guests: gList }]) => {
+      const tableNumbers = Array.from(tableIds)
+        .map((tid) => tableMap.get(tid)?.tableNumber ?? 0)
+        .sort((a, b) => a - b);
+      const totalCapacity = Array.from(tableIds).reduce((sum, tid) => sum + (tableMap.get(tid)?.capacity ?? 0), 0);
+      return { company, tableNumbers, guestCount: gList.length, totalCapacity, guests: gList.sort((a, b) => a.name.localeCompare(b.name)) };
+    })
+    .sort((a, b) => {
+      if (a.company === "— Sem empresa —") return 1;
+      if (b.company === "— Sem empresa —") return -1;
+      return a.company.localeCompare(b.company);
+    });
+}

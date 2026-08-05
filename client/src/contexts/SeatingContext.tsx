@@ -49,6 +49,12 @@ interface SeatingContextValue {
   // Tables highlighted as suggestions in SuggestNeighborDialog
   highlightedTableIds: Set<number>;
   setHighlightedTableIds: (ids: Set<number>) => void;
+
+  // Company search — highlights matching tables in amber on the map
+  companySearch: string;
+  setCompanySearch: (q: string) => void;
+  searchHighlightedTableIds: Set<number>;
+  setSearchHighlightedTableIds: (ids: Set<number>) => void;
 }
 
 const SeatingContext = createContext<SeatingContextValue | null>(null);
@@ -62,6 +68,8 @@ export function SeatingProvider({ children }: { children: React.ReactNode }) {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [pendingCompanyDrop, setPendingCompanyDrop] = useState<PendingCompanyDrop | null>(null);
   const [highlightedTableIds, setHighlightedTableIds] = useState<Set<number>>(new Set());
+  const [companySearch, setCompanySearch] = useState("");
+  const [searchHighlightedTableIds, setSearchHighlightedTableIds] = useState<Set<number>>(new Set());
 
   return (
     <SeatingContext.Provider
@@ -82,6 +90,10 @@ export function SeatingProvider({ children }: { children: React.ReactNode }) {
         setPendingCompanyDrop,
         highlightedTableIds,
         setHighlightedTableIds,
+        companySearch,
+        setCompanySearch,
+        searchHighlightedTableIds,
+        setSearchHighlightedTableIds,
       }}
     >
       {children}

@@ -13,6 +13,7 @@ import {
   getGuestsForEvent,
   getGuestsForTable,
   getSeatingReport,
+  getCompanyReport,
   getTablesForEvent,
   getUnassignedGuests,
   ensureTablesExist,
@@ -228,6 +229,12 @@ export const appRouter = router({
       .input(z.object({ eventId: z.number() }))
       .query(async ({ input }) => {
         return getSeatingReport(input.eventId);
+      }),
+
+    company: publicProcedure
+      .input(z.object({ eventId: z.number() }))
+      .query(async ({ input }) => {
+        return getCompanyReport(input.eventId);
       }),
   }),
 });

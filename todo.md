@@ -117,3 +117,27 @@
 - [x] Header compacto em mobile (texto menor, sem elementos ocultos)
 - [x] Zoom controls touch-friendly (botões 32×32px mínimo)
 - [x] PALCO, PISTA e LOUNGE reposicionados para corresponder ao PDF
+
+## Novas Funcionalidades (v11)
+
+### Feature 1 — Busca de Empresa no Mapa
+- [x] Campo de busca no topo do mapa (toolbar do SeatingManager)
+- [x] Ao digitar, destacar em âmbar todas as mesas da empresa encontrada
+- [x] Limpar destaque ao apagar o campo
+- [x] Busca case-insensitive e parcial
+- [x] Mesas não correspondentes ficam com opacidade reduzida (35%)
+- [x] Contador de mesas encontradas ao lado do campo
+
+### Feature 2 — Exportar Mapa como PNG
+- [x] Instalar html-to-image
+- [x] Botão "PNG" na toolbar
+- [x] Capturar o container do mapa com todos os nomes de empresa visíveis
+- [x] Baixar como arquivo PNG
+
+### Feature 3 — Relatório por Empresa
+- [x] Nova rota /relatorio acessível pelo botão "Relatório" na toolbar
+- [x] tRPC procedure reports.company: listar empresas com mesas, convidados e totais
+- [x] Tabela: Empresa | Mesas | Nº Mesas | Convidados | Capacidade | Ocupação
+- [x] Linha expansível: lista de convidados por empresa com número da mesa
+- [x] Botão "Exportar PDF" usando jsPDF + jspdf-autotable
+- [x] PDF com cabeçalho DON CONCEPT, data e rodapé com página

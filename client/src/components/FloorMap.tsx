@@ -99,6 +99,7 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
     dragOverTableId, setDragOverTableId,
     pendingCompanyDrop, setPendingCompanyDrop,
     highlightedTableIds, setHighlightedTableIds,
+    searchHighlightedTableIds,
   } = useSeating();
 
   const utils = trpc.useUtils();
@@ -352,7 +353,11 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
 
               const isSelected    = selectedTableId === table.id;
               const isDragOver    = dragOverTableId  === table.id;
+              // Neighbour suggestion highlight (amber from SuggestNeighborDialog)
               const isHighlighted = highlightedTableIds.has(table.id);
+              // Company search highlight (amber from search bar) — takes priority over suggestion
+              const isSearchMatch = searchHighlightedTableIds.size > 0 && searchHighlightedTableIds.has(table.id);
+              const isSearchDim   = searchHighlightedTableIds.size > 0 && !searchHighlightedTableIds.has(table.id);
 
               const companies = parseCompanyNames(table.companyNames, table.companyName);
               const maxChars  = isLarge ? 13 : 9;
@@ -365,19 +370,25 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
 
               const fill = isGroupDragOver
                 ? (groupWouldFit ? "#bbf7d0" : "#fecaca")
-                : isHighlighted ? "#fef3c7"
+                : isSearchMatch ? "#fef3c7"   // search highlight — amber
+                : isHighlighted ? "#fef3c7"   // suggestion highlight — amber
                 : isDragOver    ? "#bfdbfe"
                 : isSelected    ? "#1c1917"
+                : isSearchDim   ? "#f5f1e8"   // dimmed when search active but not matching
                 : STATUS_FILL[status];
 
               const stroke = isGroupDragOver
                 ? (groupWouldFit ? "#4ade80" : "#f87171")
+                : isSearchMatch ? "#f59e0b"   // amber stroke for search match
                 : isHighlighted ? "#f59e0b"
                 : isDragOver    ? "#3b82f6"
                 : isSelected    ? "#1c1917"
+                : isSearchDim   ? "#d4cec4"   // muted stroke when dimmed
                 : STATUS_STROKE[status];
 
-              const strokeW   = isSelected || isDragOver || isHighlighted ? 2 : 1.5;
+              const strokeW   = isSelected || isDragOver || isHighlighted || isSearchMatch ? 2 : 1.5;
+              // Dim opacity when search is active but this table doesn't match
+              const nodeOpacity = isSearchDim ? 0.35 : 1;
               const textColor = isSelected ? "#f8f5ef" : "#1c1917";
               const subColor  = isSelected ? "#d6d3d1" : "#8a7f72";
               const compColor = isSelected ? "#e7e5e4" : "#3d3530";
@@ -396,7 +407,7 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
                 <g
                   key={pos.number}
                   className="table-node"
-                  style={{ cursor: "pointer", transition: "none", transform: "none" }}
+                  style={{ cursor: "pointer", transition: "none", transform: "none", opacity: nodeOpacity }}
                   onClick={() => onTableClick(table.id)}
                   onDragOver={(e) => handleDragOver(e, table.id)}
                   onDrop={(e) => handleDrop(e, table.id)}
