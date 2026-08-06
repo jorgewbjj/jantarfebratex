@@ -40,7 +40,7 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
   const deleteAllMutation = trpc.guests.deleteAll.useMutation({
     onSuccess: (data) => {
       utils.invalidate();
-      toast.success(`${data.deletedGuests} convidados exclu\u00eddos e todas as aloca\u00e7\u00f5es de mesas foram limpas.`);
+      toast.success(`${data.deletedGuests} convidados excluídos e todas as alocações de mesas foram limpas.`);
     },
     onError: () => toast.error("Erro ao excluir convidados"),
   });
@@ -322,7 +322,7 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
               <AlertDialogHeader>
                 <AlertDialogTitle>Excluir todos os convidados?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta a\u00e7\u00e3o ir\u00e1 <strong>apagar permanentemente todos os convidados</strong> e <strong>remover todas as aloca\u00e7\u00f5es de mesas</strong> (nomes de empresas atribu\u00eddos \u00e0s mesas tamb\u00e9m ser\u00e3o removidos). Esta opera\u00e7\u00e3o n\u00e3o pode ser desfeita.
+                  Esta ação irá <strong>apagar permanentemente todos os convidados</strong> e <strong>remover todas as alocações de mesas</strong> (nomes de empresas atribuídos às mesas também serão removidos). Esta operação não pode ser desfeita.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
