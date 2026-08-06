@@ -2,9 +2,14 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   Download, LayoutGrid, Users, MapPin,
   PanelLeftOpen, PanelLeftClose, ChevronDown,
-  Search, X, Image, BarChart2,
+  Search, X, Image, BarChart2, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { trpc } from "@/lib/trpc";
 import FloorMap from "@/components/FloorMap";
 import TableDetailPanel from "@/components/TableDetailPanel";
@@ -30,6 +35,15 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [exportingPng, setExportingPng] = useState(false);
+
+  const utils = trpc.useUtils();
+  const deleteAllMutation = trpc.guests.deleteAll.useMutation({
+    onSuccess: (data) => {
+      utils.invalidate();
+      toast.success(`${data.deletedGuests} convidados exclu\u00eddos e todas as aloca\u00e7\u00f5es de mesas foram limpas.`);
+    },
+    onError: () => toast.error("Erro ao excluir convidados"),
+  });
 
   // Ref forwarded to FloorMap so we can capture the SVG for PNG export
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -291,6 +305,37 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
             <Download size={12} />
             <span className="hidden sm:inline">Exportar</span>
           </Button>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs border-red-300 text-red-600 hover:bg-red-50 gap-1.5"
+                title="Excluir todos os convidados"
+              >
+                <Trash2 size={12} />
+                <span className="hidden md:inline">Limpar Tudo</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir todos os convidados?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta a\u00e7\u00e3o ir\u00e1 <strong>apagar permanentemente todos os convidados</strong> e <strong>remover todas as aloca\u00e7\u00f5es de mesas</strong> (nomes de empresas atribu\u00eddos \u00e0s mesas tamb\u00e9m ser\u00e3o removidos). Esta opera\u00e7\u00e3o n\u00e3o pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => deleteAllMutation.mutate({ eventId })}
+                >
+                  Sim, excluir tudo
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import {
   bulkAssignGuests,
   bulkInsertGuests,
   deleteGuest,
+  deleteAllGuestsAndClearTables,
   getDefaultEvent,
   getGuestsForEvent,
   getGuestsForTable,
@@ -188,6 +189,13 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await deleteGuest(input.guestId);
         return { success: true };
+      }),
+
+    deleteAll: publicProcedure
+      .input(z.object({ eventId: z.number() }))
+      .mutation(async ({ input }) => {
+        const result = await deleteAllGuestsAndClearTables(input.eventId);
+        return { success: true, deletedGuests: result.deletedGuests };
       }),
 
     bulkAssign: publicProcedure

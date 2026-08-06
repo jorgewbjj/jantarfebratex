@@ -230,6 +230,29 @@ export async function deleteGuest(guestId: number) {
 }
 
 /**
+ * Delete ALL guests for an event and clear all table company assignments.
+ * This is a destructive operation — all guest data and seating allocations are permanently removed.
+ */
+export async function deleteAllGuestsAndClearTables(eventId: number): Promise<{ deletedGuests: number }> {
+  const db = await getDb();
+  if (!db) return { deletedGuests: 0 };
+
+  // Count guests before deletion
+  const allGuests = await db.select().from(guests).where(eq(guests.eventId, eventId));
+  const count = allGuests.length;
+
+  // Delete all guests for this event
+  await db.delete(guests).where(eq(guests.eventId, eventId));
+
+  // Clear company names from all tables for this event
+  await db.update(tables)
+    .set({ companyName: null, companyNames: null })
+    .where(eq(tables.eventId, eventId));
+
+  return { deletedGuests: count };
+}
+
+/**
  * Bulk-assign a list of guests to a table, enforcing capacity.
  * Returns { success: true, count } or throws with a descriptive message.
  */
