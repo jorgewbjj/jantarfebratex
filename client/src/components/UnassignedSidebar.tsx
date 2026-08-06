@@ -9,7 +9,7 @@
  */
 
 import React, { useState } from "react";
-import { Search, Upload, Users, GripVertical, X, Building2, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, Upload, Users, GripVertical, X, Building2, ChevronDown, ChevronRight, UserPlus, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
@@ -24,6 +24,9 @@ interface UnassignedSidebarProps {
 export default function UnassignedSidebar({ eventId }: UnassignedSidebarProps) {
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [addingGuest, setAddingGuest] = useState(false);
+  const [newGuestName, setNewGuestName] = useState("");
+  const [newGuestCompany, setNewGuestCompany] = useState("");
   const {
     setDraggedGuest,
     setDraggedCompany,
@@ -44,6 +47,27 @@ export default function UnassignedSidebar({ eventId }: UnassignedSidebarProps) {
     },
     onError: (e) => toast.error("Erro: " + e.message),
   });
+
+  const addGuestMutation = trpc.guests.add.useMutation({
+    onSuccess: () => {
+      utils.guests.unassigned.invalidate();
+      utils.guests.list.invalidate();
+      setAddingGuest(false);
+      setNewGuestName("");
+      setNewGuestCompany("");
+      toast.success("Convidado adicionado");
+    },
+    onError: (e) => toast.error("Erro: " + e.message),
+  });
+
+  const handleAddGuest = () => {
+    if (!newGuestName.trim()) return;
+    addGuestMutation.mutate({
+      eventId,
+      name: newGuestName.trim(),
+      company: newGuestCompany.trim() || undefined,
+    });
+  };
 
   // Group by company — preserving sort order
   const byCompany = unassigned.reduce<Record<string, Guest[]>>((acc, g) => {
@@ -109,6 +133,61 @@ export default function UnassignedSidebar({ eventId }: UnassignedSidebarProps) {
           <Upload size={12} />
           Importar Lista XLS
         </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full h-8 text-xs border-[#c8bfb0] text-[#6b5e52] hover:bg-[#e8e2d8] hover:text-[#1c1917] gap-1.5 mt-2"
+          onClick={() => setAddingGuest(!addingGuest)}
+        >
+          <UserPlus size={12} />
+          Adicionar Convidado
+        </Button>
+
+        {addingGuest && (
+          <div className="mt-3 p-3 bg-white border border-[#e0d9d0] rounded-sm space-y-2">
+            <Input
+              value={newGuestName}
+              onChange={(e) => setNewGuestName(e.target.value)}
+              placeholder="Nome do convidado *"
+              className="h-8 text-xs border-[#c8bfb0] focus:border-[#1c1917]"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newGuestName.trim()) handleAddGuest();
+                if (e.key === "Escape") { setAddingGuest(false); setNewGuestName(""); setNewGuestCompany(""); }
+              }}
+            />
+            <Input
+              value={newGuestCompany}
+              onChange={(e) => setNewGuestCompany(e.target.value)}
+              placeholder="Empresa (organiza no grupo)"
+              className="h-8 text-xs border-[#c8bfb0] focus:border-[#1c1917]"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newGuestName.trim()) handleAddGuest();
+                if (e.key === "Escape") { setAddingGuest(false); setNewGuestName(""); setNewGuestCompany(""); }
+              }}
+            />
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="h-7 text-xs bg-[#1c1917] hover:bg-[#2c2520] flex-1 gap-1"
+                onClick={handleAddGuest}
+                disabled={!newGuestName.trim() || addGuestMutation.isPending}
+              >
+                <Check size={11} />
+                Salvar
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={() => { setAddingGuest(false); setNewGuestName(""); setNewGuestCompany(""); }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Guest list */}
