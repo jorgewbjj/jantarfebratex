@@ -72,9 +72,9 @@ function formatCompanyDisplay(names: string[], maxChars: number): { line1: strin
 // ─── Table visual radii ───────────────────────────────────────────────────────
 // These define the interactive overlay circle size over each table in the image.
 // Normal tables (10-seat): radius ~36px at 1600px canvas width
-// Large tables (20-seat):  radius ~52px
+// Large tables (20-seat):  radius ~58px (visually larger to match the PDF)
 const TABLE_R_NORMAL = 36;
-const TABLE_R_LARGE  = 52;
+const TABLE_R_LARGE  = 58;
 
 // ─── Colour palette ───────────────────────────────────────────────────────────
 const STATUS_FILL:   Record<string, string> = {

@@ -45,7 +45,7 @@ export const TABLE_POSITIONS: TablePosition[] = [
   { number:  1, x: 554, y: 356, capacity: 10 }, // [GRID] — OCR misread
   { number: 35, x: 1198, y: 363, capacity: 10 }, // [OCR]
   { number: 36, x: 1303, y: 364, capacity: 10 }, // [OCR]
-  { number: 37, x: 1410, y: 356, capacity: 10 }, // [GRID]
+  { number: 37, x: 1380, y: 345, capacity: 10 }, // [CORRECTED]
 
   // ── Row 2 (y≈465): 05,06,07,08,09 | 43,42,41,40,39,38 ───────────────────
   { number:  5, x: 238, y: 465, capacity: 10 }, // [OCR]
@@ -53,9 +53,9 @@ export const TABLE_POSITIONS: TablePosition[] = [
   { number:  7, x: 443, y: 465, capacity: 10 }, // [GRID] — OCR misread
   { number:  8, x: 554, y: 465, capacity: 10 }, // [GRID]
   { number:  9, x: 671, y: 464, capacity: 10 }, // [OCR]
-  { number: 43, x: 983, y: 462, capacity: 10 }, // [OCR]
+  { number: 43, x: 920, y: 462, capacity: 10 }, // [CORRECTED]
   { number: 42, x: 1092, y: 465, capacity: 10 }, // [GRID]
-  { number: 41, x: 1198, y: 465, capacity: 10 }, // [GRID]
+  { number: 41, x: 1205, y: 460, capacity: 10 }, // [CORRECTED]
   { number: 40, x: 1303, y: 465, capacity: 10 }, // [GRID]
   { number: 39, x: 1412, y: 469, capacity: 10 }, // [OCR]
   { number: 38, x: 1531, y: 465, capacity: 10 }, // [GRID]
@@ -65,11 +65,11 @@ export const TABLE_POSITIONS: TablePosition[] = [
   { number: 13, x: 329, y: 570, capacity: 10 }, // [GRID]
   { number: 12, x: 442, y: 570, capacity: 10 }, // [OCR]
   { number: 11, x: 554, y: 570, capacity: 10 }, // [GRID]
-  { number: 10, x: 663, y: 570, capacity: 20 }, // [GRID] large table
-  { number: 44, x: 983, y: 570, capacity: 20 }, // [GRID] large table
+  { number: 10, x: 600, y: 530, capacity: 20 }, // [CORRECTED] large table
+  { number: 44, x: 900, y: 530, capacity: 20 }, // [CORRECTED] large table
   { number: 45, x: 1092, y: 570, capacity: 10 }, // [GRID]
-  { number: 46, x: 1198, y: 570, capacity: 10 }, // [GRID]
-  { number: 47, x: 1319, y: 563, capacity: 10 }, // [OCR]
+  { number: 46, x: 1205, y: 565, capacity: 10 }, // [CORRECTED]
+  { number: 47, x: 1310, y: 565, capacity: 10 }, // [CORRECTED]
   { number: 48, x: 1410, y: 570, capacity: 10 }, // [GRID]
   { number: 49, x: 1531, y: 570, capacity: 10 }, // [GRID]
 
@@ -82,16 +82,16 @@ export const TABLE_POSITIONS: TablePosition[] = [
   { number: 53, x: 1198, y: 689, capacity: 10 }, // [OCR]
   { number: 52, x: 1303, y: 690, capacity: 10 }, // [OCR]
   { number: 51, x: 1410, y: 686, capacity: 10 }, // [OCR]
-  { number: 50, x: 1531, y: 693, capacity: 10 }, // [GRID]
+  { number: 50, x: 1520, y: 675, capacity: 10 }, // [CORRECTED]
 
   // ── Row 5 (y≈793): 23(annex),22,21,20,19,29 | 65 | 55,56,57,58,59 ───────
-  { number: 23, x:  94, y: 793, capacity: 10 }, // [GRID] annex
+  { number: 23, x:  90, y: 780, capacity: 10 }, // [CORRECTED] annex
   { number: 22, x: 225, y: 798, capacity: 10 }, // [OCR]
   { number: 21, x: 328, y: 795, capacity: 10 }, // [OCR]
   { number: 20, x: 445, y: 794, capacity: 10 }, // [OCR]
   { number: 19, x: 554, y: 793, capacity: 10 }, // [OCR]
-  { number: 29, x: 663, y: 793, capacity: 10 }, // [GRID] (OCR found at 826 — wrong)
-  { number: 65, x: 983, y: 793, capacity: 10 }, // [GRID]
+  { number: 29, x: 630, y: 820, capacity: 10 }, // [CORRECTED]
+  { number: 65, x: 900, y: 830, capacity: 10 }, // [CORRECTED]
   { number: 55, x: 1090, y: 800, capacity: 10 }, // [OCR]
   { number: 56, x: 1197, y: 795, capacity: 10 }, // [OCR]
   { number: 57, x: 1303, y: 797, capacity: 10 }, // [OCR]
@@ -108,15 +108,15 @@ export const TABLE_POSITIONS: TablePosition[] = [
   { number: 63, x: 1198, y: 901, capacity: 10 }, // [OCR]
   { number: 62, x: 1303, y: 903, capacity: 10 }, // [OCR]
   { number: 61, x: 1410, y: 900, capacity: 10 }, // [GRID]
-  { number: 60, x: 1531, y: 900, capacity: 10 }, // [GRID]
+  { number: 60, x: 1520, y: 890, capacity: 10 }, // [CORRECTED]
 
   // ── Row 7 (y≈1004): 34(annex),33,31 | 67,69,70 ───────────────────────────
-  { number: 34, x:  94, y: 1004, capacity: 10 }, // [GRID] annex
+  { number: 34, x:  90, y: 990, capacity: 10 }, // [CORRECTED] annex
   { number: 33, x: 222, y: 1004, capacity: 10 }, // [GRID]
   { number: 31, x: 366, y: 1004, capacity: 10 }, // [OCR]
   { number: 67, x: 1275, y: 1004, capacity: 10 }, // [OCR]
   { number: 69, x: 1410, y: 1004, capacity: 10 }, // [GRID]
-  { number: 70, x: 1531, y: 1004, capacity: 10 }, // [GRID]
+  { number: 70, x: 1520, y: 990, capacity: 10 }, // [CORRECTED]
 
   // ── Row 8 (y≈1071): 32,30 | 66,68 ────────────────────────────────────────
   { number: 32, x: 293, y: 1071, capacity: 10 }, // [OCR]
