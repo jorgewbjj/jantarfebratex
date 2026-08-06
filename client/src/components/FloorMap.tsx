@@ -567,27 +567,14 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
                   style={{ transition: "none" }}
                 />
 
-                {/* Table number */}
-                <text
-                  x={effectivePos.x}
-                  y={effectivePos.y - (hasCompany ? (line2 ? 10 : 6) : 4)}
-                  textAnchor="middle"
-                  fontSize={isLarge ? 13 : 11}
-                  fontWeight="700"
-                  fill={textColor}
-                  fontFamily="DM Sans, sans-serif"
-                  style={{ userSelect: "none" }}
-                >
-                  {String(pos.number).padStart(2, "0")}
-                </text>
-
-                {/* Company name line 1 */}
+                {/* Company name line 1 — centered vertically since number is in PDF bg */}
                 {hasCompany && (
                   <text
                     x={effectivePos.x}
-                    y={effectivePos.y + (isLarge ? 5 : 4)}
+                    y={effectivePos.y - (line2 ? 3 : 0)}
                     textAnchor="middle"
-                    fontSize={isLarge ? 8 : 6.5}
+                    dominantBaseline="central"
+                    fontSize={isLarge ? 9 : 7}
                     fontWeight="600"
                     fill={compColor}
                     fontFamily="DM Sans, sans-serif"
@@ -601,9 +588,10 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
                 {line2 && (
                   <text
                     x={effectivePos.x}
-                    y={effectivePos.y + (isLarge ? 14 : 12)}
+                    y={effectivePos.y + (isLarge ? 10 : 8)}
                     textAnchor="middle"
-                    fontSize={isLarge ? 7 : 5.5}
+                    dominantBaseline="central"
+                    fontSize={isLarge ? 7.5 : 6}
                     fill={subColor}
                     fontFamily="DM Sans, sans-serif"
                     style={{ userSelect: "none" }}
