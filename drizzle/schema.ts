@@ -52,6 +52,12 @@ export const tables = mysqlTable("tables", {
    */
   companyNames: text("companyNames"),
   capacity: int("capacity").default(10).notNull(),
+  /** Custom x position override (null = use default from floorLayout.ts) */
+  positionX: int("positionX"),
+  /** Custom y position override (null = use default from floorLayout.ts) */
+  positionY: int("positionY"),
+  /** Custom radius override in px (null = use default) */
+  radiusOverride: int("radiusOverride"),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

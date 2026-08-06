@@ -22,6 +22,8 @@ import {
   updateTableCapacity,
   updateTableCompany,
   updateTableNotes,
+  updateTablePosition,
+  resetTablePosition,
 } from "./db";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
@@ -94,6 +96,25 @@ export const appRouter = router({
       .input(z.object({ tableId: z.number() }))
       .query(async ({ input }) => {
         return getGuestsForTable(input.tableId);
+      }),
+
+    updatePosition: publicProcedure
+      .input(z.object({
+        tableId: z.number(),
+        positionX: z.number(),
+        positionY: z.number(),
+        radiusOverride: z.number().nullable(),
+      }))
+      .mutation(async ({ input }) => {
+        await updateTablePosition(input.tableId, input.positionX, input.positionY, input.radiusOverride);
+        return { success: true };
+      }),
+
+    resetPosition: publicProcedure
+      .input(z.object({ tableId: z.number() }))
+      .mutation(async ({ input }) => {
+        await resetTablePosition(input.tableId);
+        return { success: true };
       }),
   }),
 

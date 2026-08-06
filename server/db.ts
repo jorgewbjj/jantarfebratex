@@ -164,6 +164,18 @@ export async function updateTableCapacity(tableId: number, capacity: number) {
   await db.update(tables).set({ capacity }).where(eq(tables.id, tableId));
 }
 
+export async function updateTablePosition(tableId: number, positionX: number, positionY: number, radiusOverride: number | null) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(tables).set({ positionX, positionY, radiusOverride }).where(eq(tables.id, tableId));
+}
+
+export async function resetTablePosition(tableId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(tables).set({ positionX: null, positionY: null, radiusOverride: null }).where(eq(tables.id, tableId));
+}
+
 // ─── Guests ───────────────────────────────────────────────────────────────────
 
 export async function getGuestsForEvent(eventId: number) {

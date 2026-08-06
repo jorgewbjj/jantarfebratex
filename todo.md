@@ -141,3 +141,15 @@
 - [x] Linha expansível: lista de convidados por empresa com número da mesa
 - [x] Botão "Exportar PDF" usando jsPDF + jspdf-autotable
 - [x] PDF com cabeçalho DON CONCEPT, data e rodapé com página
+
+## Ajuste Manual de Posição/Tamanho das Mesas (v13)
+- [x] Schema: adicionar colunas positionX, positionY, radiusOverride (INT nullable) na tabela tables
+- [x] db.ts: updateTablePosition(tableId, x, y, radius) helper
+- [x] routers: expor tables.updatePosition procedure
+- [x] FloorMap: botão "Editar Posições" na toolbar para ativar modo de edição
+- [x] FloorMap: no modo de edição, arrastar círculo para mover (sem conflito com pan)
+- [x] FloorMap: no modo de edição, controles +/- para ajustar raio do círculo
+- [x] FloorMap: salvar posição automaticamente ao soltar o círculo
+- [x] FloorMap: usar positionX/positionY do DB quando disponível, fallback para floorLayout.ts
+- [x] FloorMap: indicador visual de que está no modo de edição (borda tracejada âmbar, cursor move)
+- [x] FloorMap: botão "Resetar" para voltar à posição original do floorLayout.ts

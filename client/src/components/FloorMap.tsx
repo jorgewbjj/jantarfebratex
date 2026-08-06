@@ -18,12 +18,13 @@ import {
   CANVAS_HEIGHT,
   FLOOR_PLAN_IMAGE_URL,
   TABLE_POSITIONS,
+  TABLE_POSITION_MAP,
   findTableSetForGroup,
 } from "@/lib/floorLayout";
 import { useSeating } from "@/contexts/SeatingContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Move, RotateCcw, Plus, Minus } from "lucide-react";
 import SuggestNeighborDialog from "@/components/SuggestNeighborDialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -35,6 +36,9 @@ interface FloorMapProps {
     companyName: string | null;
     companyNames: string | null;
     capacity: number;
+    positionX: number | null;
+    positionY: number | null;
+    radiusOverride: number | null;
   }>;
   guestCounts: Map<number, number>;
   onTableClick: (tableId: number) => void;
@@ -108,14 +112,110 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
   const utils = trpc.useUtils();
   const [tooltip, setTooltip] = useState<{ tableId: number } | null>(null);
 
-  // ── Zoom / Pan ──────────────────────────────────────────────────────────────
-  // Start zoomed out so the full 1600×1453 map fits in the viewport
+  // ── Zoom / Pan ────────────────────────────────────────────────────────────────────
   const [zoom, setZoom] = useState(0.55);
   const [pan,  setPan]  = useState({ x: 0, y: 0 });
   const isPanning       = useRef(false);
   const panStart        = useRef({ x: 0, y: 0 });
   const panOrigin       = useRef({ x: 0, y: 0 });
   const containerRef    = useRef<HTMLDivElement>(null);
+
+  // ── Edit Mode (position adjustment) ─────────────────────────────────────────
+  const [editMode, setEditMode] = useState(false);
+  const [editingTableId, setEditingTableId] = useState<number | null>(null);
+  const isDraggingTable = useRef(false);
+  const dragTableStart  = useRef({ x: 0, y: 0 });
+  const dragTableOrigin = useRef({ x: 0, y: 0 });
+  const [localPositions, setLocalPositions] = useState<Map<number, { x: number; y: number }>>(new Map());
+  const [localRadii, setLocalRadii] = useState<Map<number, number>>(new Map());
+
+  const updatePositionMutation = trpc.tables.updatePosition.useMutation({
+    onSuccess: () => utils.tables.list.invalidate(),
+  });
+  const resetPositionMutation = trpc.tables.resetPosition.useMutation({
+    onSuccess: () => {
+      utils.tables.list.invalidate();
+      toast.success("Posi\u00e7\u00e3o resetada");
+    },
+  });
+
+  // Get effective position for a table (DB override > local override > default)
+  const getEffectivePosition = useCallback((table: FloorMapProps["tables"][0]) => {
+    // Local drag position takes priority (during drag)
+    const local = localPositions.get(table.id);
+    if (local) return local;
+    // DB override
+    if (table.positionX !== null && table.positionY !== null) {
+      return { x: table.positionX, y: table.positionY };
+    }
+    // Default from floorLayout.ts
+    const defaultPos = TABLE_POSITION_MAP.get(table.tableNumber);
+    return defaultPos ? { x: defaultPos.x, y: defaultPos.y } : { x: 0, y: 0 };
+  }, [localPositions]);
+
+  const getEffectiveRadius = useCallback((table: FloorMapProps["tables"][0]) => {
+    const local = localRadii.get(table.id);
+    if (local) return local;
+    if (table.radiusOverride !== null) return table.radiusOverride;
+    return table.capacity >= 20 ? TABLE_R_LARGE : TABLE_R_NORMAL;
+  }, [localRadii]);
+
+  const handleEditTableMouseDown = useCallback((e: React.MouseEvent, tableId: number, currentX: number, currentY: number) => {
+    if (!editMode) return;
+    e.stopPropagation();
+    e.preventDefault();
+    isDraggingTable.current = true;
+    setEditingTableId(tableId);
+    dragTableStart.current = { x: e.clientX, y: e.clientY };
+    dragTableOrigin.current = { x: currentX, y: currentY };
+  }, [editMode]);
+
+  const handleEditTableMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!editMode || !isDraggingTable.current || editingTableId === null) return;
+    const dx = (e.clientX - dragTableStart.current.x) / zoom;
+    const dy = (e.clientY - dragTableStart.current.y) / zoom;
+    const newX = Math.round(dragTableOrigin.current.x + dx);
+    const newY = Math.round(dragTableOrigin.current.y + dy);
+    setLocalPositions(prev => new Map(prev).set(editingTableId, { x: newX, y: newY }));
+  }, [editMode, editingTableId, zoom]);
+
+  const handleEditTableMouseUp = useCallback(() => {
+    if (!isDraggingTable.current || editingTableId === null) return;
+    isDraggingTable.current = false;
+    const pos = localPositions.get(editingTableId);
+    if (pos) {
+      const table = tables.find(t => t.id === editingTableId);
+      const radius = getEffectiveRadius(table!);
+      updatePositionMutation.mutate({
+        tableId: editingTableId,
+        positionX: pos.x,
+        positionY: pos.y,
+        radiusOverride: radius !== (table!.capacity >= 20 ? TABLE_R_LARGE : TABLE_R_NORMAL) ? radius : null,
+      });
+    }
+  }, [editingTableId, localPositions, tables, getEffectiveRadius, updatePositionMutation]);
+
+  const handleRadiusChange = useCallback((tableId: number, delta: number) => {
+    const table = tables.find(t => t.id === tableId);
+    if (!table) return;
+    const current = getEffectiveRadius(table);
+    const newR = Math.max(20, Math.min(80, current + delta));
+    setLocalRadii(prev => new Map(prev).set(tableId, newR));
+    const pos = getEffectivePosition(table);
+    updatePositionMutation.mutate({
+      tableId,
+      positionX: pos.x,
+      positionY: pos.y,
+      radiusOverride: newR,
+    });
+  }, [tables, getEffectiveRadius, getEffectivePosition, updatePositionMutation]);
+
+  const handleResetPosition = useCallback((tableId: number) => {
+    setLocalPositions(prev => { const m = new Map(prev); m.delete(tableId); return m; });
+    setLocalRadii(prev => { const m = new Map(prev); m.delete(tableId); return m; });
+    resetPositionMutation.mutate({ tableId });
+  }, [resetPositionMutation]);
+
 
   const clampPan = useCallback((x: number, y: number, z: number) => {
     const cw = containerRef.current?.clientWidth  ?? CANVAS_WIDTH;
@@ -292,11 +392,11 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
     <div
       ref={containerRef}
       className="w-full h-full overflow-hidden relative select-none"
-      style={{ cursor: isPanning.current ? "grabbing" : "grab", background: "#e8e4dc" }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
+      style={{ cursor: editMode ? (isDraggingTable.current ? "grabbing" : "move") : (isPanning.current ? "grabbing" : "grab"), background: "#e8e4dc" }}
+      onMouseDown={editMode ? undefined : handleMouseDown}
+      onMouseMove={(e) => { if (editMode) handleEditTableMouseMove(e); else handleMouseMove(e); }}
+      onMouseUp={() => { if (editMode) handleEditTableMouseUp(); else handleMouseUp(); }}
+      onMouseLeave={() => { if (editMode) handleEditTableMouseUp(); else handleMouseUp(); }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -318,6 +418,19 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
           </button>
         ))}
         <div className="text-center text-[9px] text-[#b0a89e] font-medium mt-0.5">{Math.round(zoom * 100)}%</div>
+        <div className="mt-2 border-t border-[#c8bfb0] pt-1">
+          <button
+            onClick={() => setEditMode(!editMode)}
+            aria-label="Editar posi\u00e7\u00f5es"
+            className={`w-8 h-8 flex items-center justify-center rounded-sm border shadow-sm ${
+              editMode
+                ? "bg-amber-100 border-amber-400 text-amber-700"
+                : "bg-white/90 border-[#c8bfb0] text-[#6b5e52] hover:bg-[#f8f5ef]"
+            }`}
+          >
+            <Move size={14} />
+          </button>
+        </div>
       </div>
 
       {/* ── Hint ── */}
@@ -377,8 +490,10 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
 
             const count     = guestCounts.get(table.id) ?? 0;
             const status    = getTableStatus(count, table.capacity);
+            const effectivePos = getEffectivePosition(table);
+            const r         = getEffectiveRadius(table);
             const isLarge   = table.capacity >= 20;
-            const r         = isLarge ? TABLE_R_LARGE : TABLE_R_NORMAL;
+            const isEditing = editMode && editingTableId === table.id;
 
             const isSelected    = selectedTableId === table.id;
             const isDragOver    = dragOverTableId  === table.id;
@@ -428,13 +543,14 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
               <g
                 key={pos.number}
                 className="table-node"
-                style={{ cursor: "pointer", transition: "none", transform: "none", opacity: nodeOpacity }}
-                onClick={(e) => { e.stopPropagation(); onTableClick(table.id); }}
-                onDragOver={(e) => handleDragOver(e, table.id)}
-                onDrop={(e) => handleDrop(e, table.id)}
-                onDragLeave={handleDragLeave}
-                onMouseEnter={() => setTooltip({ tableId: table.id })}
-                onMouseLeave={() => setTooltip(null)}
+                style={{ cursor: editMode ? "move" : "pointer", transition: "none", transform: "none", opacity: nodeOpacity }}
+                onClick={(e) => { if (!editMode) { e.stopPropagation(); onTableClick(table.id); } }}
+                onMouseDown={(e) => editMode && handleEditTableMouseDown(e, table.id, effectivePos.x, effectivePos.y)}
+                onDragOver={(e) => !editMode && handleDragOver(e, table.id)}
+                onDrop={(e) => !editMode && handleDrop(e, table.id)}
+                onDragLeave={() => !editMode && handleDragLeave()}
+                onMouseEnter={() => !editMode && setTooltip({ tableId: table.id })}
+                onMouseLeave={() => !editMode && setTooltip(null)}
                 role="button"
                 aria-label={`Mesa ${pos.number}${hasCompany ? ` — ${companies.join(", ")}` : ""}, ${count}/${table.capacity} lugares`}
                 tabIndex={0}
@@ -442,8 +558,8 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
               >
                 {/* Main circle overlay */}
                 <circle
-                  cx={pos.x}
-                  cy={pos.y}
+                  cx={effectivePos.x}
+                  cy={effectivePos.y}
                   r={r}
                   fill={fill}
                   stroke={stroke}
@@ -453,8 +569,8 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
 
                 {/* Table number */}
                 <text
-                  x={pos.x}
-                  y={pos.y - (hasCompany ? (line2 ? 10 : 6) : 4)}
+                  x={effectivePos.x}
+                  y={effectivePos.y - (hasCompany ? (line2 ? 10 : 6) : 4)}
                   textAnchor="middle"
                   fontSize={isLarge ? 13 : 11}
                   fontWeight="700"
@@ -468,8 +584,8 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
                 {/* Company name line 1 */}
                 {hasCompany && (
                   <text
-                    x={pos.x}
-                    y={pos.y + (isLarge ? 5 : 4)}
+                    x={effectivePos.x}
+                    y={effectivePos.y + (isLarge ? 5 : 4)}
                     textAnchor="middle"
                     fontSize={isLarge ? 8 : 6.5}
                     fontWeight="600"
@@ -484,8 +600,8 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
                 {/* Company name line 2 */}
                 {line2 && (
                   <text
-                    x={pos.x}
-                    y={pos.y + (isLarge ? 14 : 12)}
+                    x={effectivePos.x}
+                    y={effectivePos.y + (isLarge ? 14 : 12)}
                     textAnchor="middle"
                     fontSize={isLarge ? 7 : 5.5}
                     fill={subColor}
@@ -498,8 +614,8 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
 
                 {/* Guest count */}
                 <text
-                  x={pos.x}
-                  y={pos.y + r - 5}
+                  x={effectivePos.x}
+                  y={effectivePos.y + r - 5}
                   textAnchor="middle"
                   fontSize={isLarge ? 7.5 : 6}
                   fill={subColor}
@@ -509,20 +625,58 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
                   {count}/{table.capacity}
                 </text>
 
+                {/* Edit mode indicator */}
+                {editMode && (
+                  <>
+                    <circle
+                      cx={effectivePos.x}
+                      cy={effectivePos.y}
+                      r={r + 4}
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth={1.5}
+                      strokeDasharray="4 3"
+                    />
+                    {/* Resize buttons */}
+                    <g
+                      onClick={(e) => { e.stopPropagation(); handleRadiusChange(table.id, 4); }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <circle cx={effectivePos.x + r + 10} cy={effectivePos.y - 8} r={8} fill="#fff" stroke="#f59e0b" strokeWidth={1} />
+                      <text x={effectivePos.x + r + 10} y={effectivePos.y - 4} textAnchor="middle" fontSize={12} fill="#f59e0b" fontWeight="700">+</text>
+                    </g>
+                    <g
+                      onClick={(e) => { e.stopPropagation(); handleRadiusChange(table.id, -4); }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <circle cx={effectivePos.x + r + 10} cy={effectivePos.y + 8} r={8} fill="#fff" stroke="#f59e0b" strokeWidth={1} />
+                      <text x={effectivePos.x + r + 10} y={effectivePos.y + 12} textAnchor="middle" fontSize={12} fill="#f59e0b" fontWeight="700">−</text>
+                    </g>
+                    {/* Reset button */}
+                    <g
+                      onClick={(e) => { e.stopPropagation(); handleResetPosition(table.id); }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <circle cx={effectivePos.x - r - 10} cy={effectivePos.y} r={8} fill="#fff" stroke="#6b5e52" strokeWidth={1} />
+                      <text x={effectivePos.x - r - 10} y={effectivePos.y + 4} textAnchor="middle" fontSize={8} fill="#6b5e52">↺</text>
+                    </g>
+                  </>
+                )}
+
                 {/* Tooltip */}
-                {tooltipText && (
+                {!editMode && tooltipText && (
                   <g>
                     <rect
-                      x={pos.x - 70}
-                      y={pos.y - r - 28}
+                      x={effectivePos.x - 70}
+                      y={effectivePos.y - r - 28}
                       width={140}
                       height={20}
                       rx={4}
                       fill="rgba(28,25,23,0.9)"
                     />
                     <text
-                      x={pos.x}
-                      y={pos.y - r - 14}
+                      x={effectivePos.x}
+                      y={effectivePos.y - r - 14}
                       textAnchor="middle"
                       fontSize={9}
                       fill="#f8f5ef"
