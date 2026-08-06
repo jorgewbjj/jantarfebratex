@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Edit2, Check, UserMinus, UserPlus, ArrowRight, Plus, Building2 } from "lucide-react";
+import { X, Edit2, Check, UserMinus, UserPlus, ArrowRight, Plus, Building2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
@@ -41,6 +41,8 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
   const [newGuestCompany, setNewGuestCompany] = useState("");
   const [reassigningGuest, setReassigningGuest] = useState<Guest | null>(null);
   const [reassignTarget, setReassignTarget] = useState<number | "">("");
+  const [editingGuestId, setEditingGuestId] = useState<number | null>(null);
+  const [editingGuestName, setEditingGuestName] = useState("");
 
   const utils = trpc.useUtils();
 
@@ -61,6 +63,8 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
     setNewGuestCompany("");
     setReassigningGuest(null);
     setReassignTarget("");
+    setEditingGuestId(null);
+    setEditingGuestName("");
   }, [tableId]);
 
   const addCompanyMutation = trpc.tables.addCompany.useMutation({
@@ -123,6 +127,33 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
     },
     onError: (e) => toast.error("Erro: " + e.message),
   });
+
+  const updateGuestMutation = trpc.guests.update.useMutation({
+    onSuccess: () => {
+      utils.tables.getGuests.invalidate();
+      utils.guests.list.invalidate();
+      utils.guests.unassigned.invalidate();
+      setEditingGuestId(null);
+      setEditingGuestName("");
+      toast.success("Nome atualizado");
+    },
+    onError: (e) => toast.error("Erro: " + e.message),
+  });
+
+  const handleStartEdit = (guest: { id: number; name: string | null }) => {
+    setEditingGuestId(guest.id);
+    setEditingGuestName(guest.name || "");
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingGuestId || !editingGuestName.trim()) return;
+    updateGuestMutation.mutate({ guestId: editingGuestId, name: editingGuestName.trim() });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingGuestId(null);
+    setEditingGuestName("");
+  };
 
   if (!table) return null;
 
@@ -391,12 +422,57 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
                 onDragStart={() => handleDragStart(guest as Guest)}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[#1c1917] truncate">{guest.name}</p>
-                  {guest.company && (
-                    <p className="text-xs text-[#8a7f72] truncate">{guest.company}</p>
+                  {editingGuestId === guest.id ? (
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        value={editingGuestName}
+                        onChange={(e) => setEditingGuestName(e.target.value)}
+                        className="h-7 text-sm border-[#c8bfb0] focus:border-[#1c1917] px-2"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveEdit();
+                          if (e.key === "Escape") handleCancelEdit();
+                        }}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-green-600 hover:text-green-700 shrink-0"
+                        onClick={handleSaveEdit}
+                        disabled={!editingGuestName.trim() || updateGuestMutation.isPending}
+                        title="Salvar"
+                      >
+                        <Check size={13} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-[#8a7f72] hover:text-[#1c1917] shrink-0"
+                        onClick={handleCancelEdit}
+                        title="Cancelar"
+                      >
+                        <X size={13} />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-[#1c1917] truncate">{guest.name}</p>
+                      {guest.company && (
+                        <p className="text-xs text-[#8a7f72] truncate">{guest.company}</p>
+                      )}
+                    </>
                   )}
                 </div>
                 <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-[#8a7f72] hover:text-blue-600"
+                    title="Editar nome"
+                    onClick={() => handleStartEdit(guest)}
+                  >
+                    <Pencil size={11} />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
