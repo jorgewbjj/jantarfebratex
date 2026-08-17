@@ -42,6 +42,7 @@ interface FloorMapProps {
   }>;
   guestCounts: Map<number, number>;
   allInvitesDelivered?: Map<number, boolean>;
+  inviteStats?: Map<number, { delivered: number; total: number }>;
   onTableClick: (tableId: number) => void;
 }
 
@@ -101,7 +102,7 @@ const MAX_ZOOM  = 5.0;
 const ZOOM_STEP = 0.15;
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export default function FloorMap({ eventId: _eventId, tables, guestCounts, allInvitesDelivered, onTableClick }: FloorMapProps) {
+export default function FloorMap({ eventId: _eventId, tables, guestCounts, allInvitesDelivered, inviteStats, onTableClick }: FloorMapProps) {
   const {
     selectedTableId,
     draggedGuest, setDraggedGuest,
@@ -619,6 +620,41 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, allIn
                 >
                   {count}/{table.capacity}
                 </text>
+
+                {/* Invite delivery badge — small balloon at bottom-right */}
+                {count > 0 && inviteStats?.has(table.id) && (() => {
+                  const stats = inviteStats.get(table.id)!;
+                  const badgeX = effectivePos.x + r * 0.65;
+                  const badgeY = effectivePos.y + r * 0.65;
+                  const badgeFill = stats.delivered === stats.total ? "#166534" : "#78716c";
+                  const badgeTextColor = "#fff";
+                  return (
+                    <g style={{ pointerEvents: "none" }}>
+                      <rect
+                        x={badgeX - 10}
+                        y={badgeY - 5}
+                        width={20}
+                        height={10}
+                        rx={5}
+                        fill={badgeFill}
+                        opacity={0.9}
+                      />
+                      <text
+                        x={badgeX}
+                        y={badgeY + 0.5}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fontSize={5.5}
+                        fontWeight="600"
+                        fill={badgeTextColor}
+                        fontFamily="DM Sans, sans-serif"
+                        style={{ userSelect: "none" }}
+                      >
+                        {stats.delivered}/{stats.total}
+                      </text>
+                    </g>
+                  );
+                })()}
 
                 {/* Edit mode indicator */}
                 {editMode && (

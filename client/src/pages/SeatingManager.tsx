@@ -77,6 +77,20 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
     return map;
   }, [allGuests]);
 
+  // Build inviteStats map: tableId → { delivered, total }
+  const inviteStats = useMemo(() => {
+    const map = new Map<number, { delivered: number; total: number }>();
+    for (const g of allGuests) {
+      if (g.tableId != null) {
+        const curr = map.get(g.tableId) ?? { delivered: 0, total: 0 };
+        curr.total++;
+        if (g.inviteDelivered) curr.delivered++;
+        map.set(g.tableId, curr);
+      }
+    }
+    return map;
+  }, [allGuests]);
+
   const totalSeated     = allGuests.filter((g) => g.tableId != null).length;
   const totalUnassigned = allGuests.filter((g) => g.tableId == null).length;
   const totalCapacity   = tables.reduce((s, t) => s + t.capacity, 0);
@@ -218,7 +232,7 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
             <div className="absolute inset-0 z-20 bg-black/20" onClick={() => setSidebarOpen(false)} />
           )}
           <div ref={mapContainerRef} className="flex-1 overflow-hidden bg-[#f4f0e8] relative">
-            <FloorMap eventId={eventId} tables={tables} guestCounts={guestCounts} allInvitesDelivered={allInvitesDelivered} onTableClick={handleTableClick} />
+            <FloorMap eventId={eventId} tables={tables} guestCounts={guestCounts} allInvitesDelivered={allInvitesDelivered} inviteStats={inviteStats} onTableClick={handleTableClick} />
           </div>
         </div>
 
@@ -365,7 +379,7 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
         </div>
 
         <div ref={mapContainerRef} className="flex-1 overflow-hidden bg-[#f4f0e8] relative">
-          <FloorMap eventId={eventId} tables={tables} guestCounts={guestCounts} allInvitesDelivered={allInvitesDelivered} onTableClick={handleTableClick} />
+          <FloorMap eventId={eventId} tables={tables} guestCounts={guestCounts} allInvitesDelivered={allInvitesDelivered} inviteStats={inviteStats} onTableClick={handleTableClick} />
         </div>
 
         <div className={`shrink-0 overflow-hidden transition-all duration-300 ${selectedTableId ? "w-72 md:w-80" : "w-0"}`}>
