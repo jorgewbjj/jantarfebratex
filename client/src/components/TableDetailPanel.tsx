@@ -3,6 +3,7 @@ import { X, Edit2, Check, UserMinus, UserPlus, ArrowRight, Plus, Building2, Penc
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useSeating } from "@/contexts/SeatingContext";
@@ -152,6 +153,22 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
 
   const handleToggleInvite = (guestId: number, currentValue: boolean) => {
     toggleInviteMutation.mutate({ guestId, inviteDelivered: !currentValue });
+  };
+
+  const handleMarkAllDelivered = async () => {
+    const pending = guests.filter((g) => !g.inviteDelivered);
+    for (const g of pending) {
+      toggleInviteMutation.mutate({ guestId: g.id, inviteDelivered: true });
+    }
+    toast.success(`${pending.length} convites marcados como entregues`);
+  };
+
+  const handleUnmarkAllDelivered = async () => {
+    const delivered = guests.filter((g) => g.inviteDelivered);
+    for (const g of delivered) {
+      toggleInviteMutation.mutate({ guestId: g.id, inviteDelivered: false });
+    }
+    toast.success(`${delivered.length} convites desmarcados`);
   };
 
   // Count delivered invites
@@ -336,6 +353,70 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
               <span className={`text-xs font-medium ${allDelivered ? "text-green-700" : "text-[#6b5e52]"}`}>
                 {deliveredCount}/{guests.length} entregues
               </span>
+            </div>
+            {/* Mark All / Unmark All button with confirmation */}
+            <div className="mt-2">
+              {!allDelivered ? (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-7 text-xs border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 gap-1.5"
+                    >
+                      <MailCheck size={11} />
+                      Marcar todos como entregue
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-[#f8f5ef] border-[#e0d9d0]">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="font-serif text-lg">Marcar todos os convites como entregues?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-[#6b5e52]">
+                        Todos os {guests.length - deliveredCount} convites pendentes desta mesa serao marcados como entregues. Voce pode desmarcar individualmente depois se necessario.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-[#c8bfb0]">Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-green-700 hover:bg-green-800 text-white"
+                        onClick={handleMarkAllDelivered}
+                      >
+                        Sim, marcar todos
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-7 text-xs border-[#c8bfb0] text-[#6b5e52] hover:bg-[#e8e2d8] gap-1.5"
+                    >
+                      <Mail size={11} />
+                      Desmarcar todos
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-[#f8f5ef] border-[#e0d9d0]">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="font-serif text-lg">Desmarcar todos os convites?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-[#6b5e52]">
+                        Todos os {deliveredCount} convites desta mesa serao desmarcados como nao entregues.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-[#c8bfb0]">Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-[#1c1917] hover:bg-[#2c2520] text-white"
+                        onClick={handleUnmarkAllDelivered}
+                      >
+                        Sim, desmarcar todos
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
         )}

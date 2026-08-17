@@ -3,6 +3,7 @@ import {
   Download, LayoutGrid, Users, MapPin,
   PanelLeftOpen, PanelLeftClose, ChevronDown,
   Search, X, Image, BarChart2, Trash2,
+  MailCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -80,6 +81,7 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
   const totalUnassigned = allGuests.filter((g) => g.tableId == null).length;
   const totalCapacity   = tables.reduce((s, t) => s + t.capacity, 0);
   const occupancyPct    = totalCapacity > 0 ? Math.round((totalSeated / totalCapacity) * 100) : 0;
+  const totalInvitesDelivered = allGuests.filter((g) => g.inviteDelivered).length;
 
   const handleTableClick = (tableId: number) => {
     setSelectedTableId(selectedTableId === tableId ? null : tableId);
@@ -260,6 +262,7 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
             { icon: LayoutGrid, label: "Mesas",         value: tables.length },
             { icon: Users,      label: "Alocados",      value: totalSeated },
             { icon: MapPin,     label: "Não alocados",  value: totalUnassigned },
+            { icon: MailCheck,   label: "Convites",      value: `${totalInvitesDelivered}/${totalSeated}` },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex items-center gap-1.5 shrink-0">
               <Icon size={13} className="text-[#b0a89e]" />
