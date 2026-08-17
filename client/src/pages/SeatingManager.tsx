@@ -350,36 +350,7 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
             <span className="hidden sm:inline">Exportar</span>
           </Button>
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs border-red-300 text-red-600 hover:bg-red-50 gap-1.5"
-                title="Excluir todos os convidados"
-              >
-                <Trash2 size={12} />
-                <span className="hidden md:inline">Limpar Tudo</span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Excluir todos os convidados?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta ação irá <strong>apagar permanentemente todos os convidados</strong> e <strong>remover todas as alocações de mesas</strong> (nomes de empresas atribuídos às mesas também serão removidos). Esta operação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                  onClick={() => deleteAllMutation.mutate({ eventId })}
-                >
-                  Sim, excluir tudo
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {/* Limpar Tudo — DESATIVADO por segurança */}
         </div>
       </div>
 
