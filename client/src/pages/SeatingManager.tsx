@@ -60,6 +60,22 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
     return map;
   }, [allGuests]);
 
+  // Build allInvitesDelivered map: tableId → true if ALL guests at that table have inviteDelivered
+  const allInvitesDelivered = useMemo(() => {
+    const map = new Map<number, boolean>();
+    const byTable = new Map<number, boolean[]>();
+    for (const g of allGuests) {
+      if (g.tableId != null) {
+        if (!byTable.has(g.tableId)) byTable.set(g.tableId, []);
+        byTable.get(g.tableId)!.push(!!g.inviteDelivered);
+      }
+    }
+    byTable.forEach((delivered, tableId) => {
+      map.set(tableId, delivered.length > 0 && delivered.every((d) => d));
+    });
+    return map;
+  }, [allGuests]);
+
   const totalSeated     = allGuests.filter((g) => g.tableId != null).length;
   const totalUnassigned = allGuests.filter((g) => g.tableId == null).length;
   const totalCapacity   = tables.reduce((s, t) => s + t.capacity, 0);
@@ -200,7 +216,7 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
             <div className="absolute inset-0 z-20 bg-black/20" onClick={() => setSidebarOpen(false)} />
           )}
           <div ref={mapContainerRef} className="flex-1 overflow-hidden bg-[#f4f0e8] relative">
-            <FloorMap eventId={eventId} tables={tables} guestCounts={guestCounts} onTableClick={handleTableClick} />
+            <FloorMap eventId={eventId} tables={tables} guestCounts={guestCounts} allInvitesDelivered={allInvitesDelivered} onTableClick={handleTableClick} />
           </div>
         </div>
 
@@ -346,7 +362,7 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
         </div>
 
         <div ref={mapContainerRef} className="flex-1 overflow-hidden bg-[#f4f0e8] relative">
-          <FloorMap eventId={eventId} tables={tables} guestCounts={guestCounts} onTableClick={handleTableClick} />
+          <FloorMap eventId={eventId} tables={tables} guestCounts={guestCounts} allInvitesDelivered={allInvitesDelivered} onTableClick={handleTableClick} />
         </div>
 
         <div className={`shrink-0 overflow-hidden transition-all duration-300 ${selectedTableId ? "w-72 md:w-80" : "w-0"}`}>

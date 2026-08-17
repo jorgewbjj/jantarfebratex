@@ -169,6 +169,7 @@ export const appRouter = router({
           phone: z.string().nullable().optional(),
           notes: z.string().nullable().optional(),
           confirmed: z.boolean().optional(),
+          inviteDelivered: z.boolean().optional(),
         })
       )
       .mutation(async ({ input }) => {

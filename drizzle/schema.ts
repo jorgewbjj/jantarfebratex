@@ -78,6 +78,7 @@ export const guests = mysqlTable("guests", {
   seatNumber: int("seatNumber"), // optional seat within table
   notes: text("notes"),
   confirmed: boolean("confirmed").default(false).notNull(),
+  inviteDelivered: boolean("inviteDelivered").default(false).notNull(),
   importBatch: varchar("importBatch", { length: 64 }), // track which import batch
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

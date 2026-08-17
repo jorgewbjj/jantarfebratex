@@ -1,0 +1,1 @@
+ALTER TABLE `guests` ADD `inviteDelivered` boolean DEFAULT false NOT NULL;

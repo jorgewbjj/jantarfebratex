@@ -41,6 +41,7 @@ interface FloorMapProps {
     radiusOverride: number | null;
   }>;
   guestCounts: Map<number, number>;
+  allInvitesDelivered?: Map<number, boolean>;
   onTableClick: (tableId: number) => void;
 }
 
@@ -86,11 +87,13 @@ const STATUS_FILL:   Record<string, string> = {
   partial: "rgba(219,234,254,0.72)", // blue tint
   full:    "rgba(187,247,208,0.72)", // green tint
 };
+const STATUS_FILL_ALL_DELIVERED = "rgba(22,101,52,0.82)"; // dark green when all invites delivered
 const STATUS_STROKE: Record<string, string> = {
   empty:   "rgba(184,176,164,0.5)",
   partial: "#93c5fd",
   full:    "#4ade80",
 };
+const STATUS_STROKE_ALL_DELIVERED = "#166534"; // dark green stroke
 
 // ─── Zoom constants ───────────────────────────────────────────────────────────
 const MIN_ZOOM  = 0.3;
@@ -98,7 +101,7 @@ const MAX_ZOOM  = 5.0;
 const ZOOM_STEP = 0.15;
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTableClick }: FloorMapProps) {
+export default function FloorMap({ eventId: _eventId, tables, guestCounts, allInvitesDelivered, onTableClick }: FloorMapProps) {
   const {
     selectedTableId,
     draggedGuest, setDraggedGuest,
@@ -446,6 +449,7 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
           { color: "rgba(245,241,232,0.9)", stroke: "rgba(184,176,164,0.8)", label: "Vazia" },
           { color: "rgba(219,234,254,0.9)", stroke: "#93c5fd",               label: "Parcial" },
           { color: "rgba(187,247,208,0.9)", stroke: "#4ade80",               label: "Cheia" },
+          { color: "rgba(22,101,52,0.9)",   stroke: "#166534",               label: "Convites OK" },
         ].map(({ color, stroke, label }) => (
           <div key={label} className="flex items-center gap-1">
             <svg width="12" height="12">
@@ -512,7 +516,7 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
               : isDragOver    ? "rgba(219,234,254,0.88)"
               : isSelected    ? "rgba(28,25,23,0.88)"
               : isSearchDim   ? "rgba(245,241,232,0.1)"
-              : STATUS_FILL[status];
+              : (allInvitesDelivered?.get(table.id) ? STATUS_FILL_ALL_DELIVERED : STATUS_FILL[status]);
 
             const stroke = isGroupDragOver
               ? (groupWouldFit ? "#4ade80" : "#f87171")
@@ -521,13 +525,16 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, onTab
               : isDragOver    ? "#3b82f6"
               : isSelected    ? "#1c1917"
               : isSearchDim   ? "rgba(184,176,164,0.2)"
-              : STATUS_STROKE[status];
+              : (allInvitesDelivered?.get(table.id) ? STATUS_STROKE_ALL_DELIVERED : STATUS_STROKE[status]);
+
+            // Override text colors for dark green tables
+            const isAllDelivered = allInvitesDelivered?.get(table.id) ?? false;
 
             const strokeW   = isSelected || isDragOver || isHighlighted || isSearchMatch ? 2.5 : 1.5;
             const nodeOpacity = isSearchDim ? 0.25 : 1;
-            const textColor = isSelected ? "#f8f5ef" : "#1c1917";
-            const subColor  = isSelected ? "#d6d3d1" : "#6b5e52";
-            const compColor = isSelected ? "#e7e5e4" : "#1c1917";
+            const textColor = isSelected ? "#f8f5ef" : isAllDelivered ? "#f0fdf4" : "#1c1917";
+            const subColor  = isSelected ? "#d6d3d1" : isAllDelivered ? "#bbf7d0" : "#6b5e52";
+            const compColor = isSelected ? "#e7e5e4" : isAllDelivered ? "#f0fdf4" : "#1c1917";
 
             const companies = parseCompanyNames(table.companyNames, table.companyName);
             const maxChars  = isLarge ? 12 : 8;

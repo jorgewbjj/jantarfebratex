@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { X, Edit2, Check, UserMinus, UserPlus, ArrowRight, Plus, Building2, Pencil } from "lucide-react";
+import { X, Edit2, Check, UserMinus, UserPlus, ArrowRight, Plus, Building2, Pencil, Mail, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useSeating } from "@/contexts/SeatingContext";
@@ -139,6 +140,23 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
     },
     onError: (e) => toast.error("Erro: " + e.message),
   });
+
+  const toggleInviteMutation = trpc.guests.update.useMutation({
+    onSuccess: () => {
+      utils.tables.getGuests.invalidate();
+      utils.guests.list.invalidate();
+      utils.reports.seating.invalidate();
+    },
+    onError: (e) => toast.error("Erro ao salvar: " + e.message),
+  });
+
+  const handleToggleInvite = (guestId: number, currentValue: boolean) => {
+    toggleInviteMutation.mutate({ guestId, inviteDelivered: !currentValue });
+  };
+
+  // Count delivered invites
+  const deliveredCount = guests.filter((g) => g.inviteDelivered).length;
+  const allDelivered = guests.length > 0 && deliveredCount === guests.length;
 
   const handleStartEdit = (guest: { id: number; name: string | null }) => {
     setEditingGuestId(guest.id);
@@ -306,6 +324,21 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
             />
           </div>
         </div>
+
+        {/* Invite delivery status */}
+        {guests.length > 0 && (
+          <div className="mt-3">
+            <div className="flex justify-between items-center">
+              <p className="editorial-label text-[#8a7f72] flex items-center gap-1.5">
+                {allDelivered ? <MailCheck size={11} className="text-green-700" /> : <Mail size={11} />}
+                Convites
+              </p>
+              <span className={`text-xs font-medium ${allDelivered ? "text-green-700" : "text-[#6b5e52]"}`}>
+                {deliveredCount}/{guests.length} entregues
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Guests list */}
@@ -417,10 +450,19 @@ export default function TableDetailPanel({ eventId, tableId, tables, onClose }: 
             {guests.map((guest) => (
               <li
                 key={guest.id}
-                className="guest-pill group flex items-center gap-2 px-3 py-2 bg-white border border-[#e8e2d8] rounded-sm hover:border-[#c8bfb0] transition-colors"
+                className={`guest-pill group flex items-center gap-2 px-3 py-2 bg-white border rounded-sm hover:border-[#c8bfb0] transition-colors ${
+                  guest.inviteDelivered ? "border-green-300 bg-green-50/50" : "border-[#e8e2d8]"
+                }`}
                 draggable
                 onDragStart={() => handleDragStart(guest as Guest)}
               >
+                {/* Invite delivered checkbox */}
+                <Checkbox
+                  checked={!!guest.inviteDelivered}
+                  onCheckedChange={() => handleToggleInvite(guest.id, !!guest.inviteDelivered)}
+                  className="shrink-0 h-4 w-4 border-[#c8bfb0] data-[state=checked]:bg-green-700 data-[state=checked]:border-green-700"
+                  title={guest.inviteDelivered ? "Convite entregue ✓" : "Marcar convite como entregue"}
+                />
                 <div className="flex-1 min-w-0">
                   {editingGuestId === guest.id ? (
                     <div className="flex items-center gap-1.5">
