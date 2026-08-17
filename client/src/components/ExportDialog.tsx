@@ -98,6 +98,7 @@ export default function ExportDialog({ eventId }: ExportDialogProps) {
               "Mesa": t.tableNumber,
               "Email": g.email ?? "",
               "Telefone": g.phone ?? "",
+              "Convite Entregue": g.inviteDelivered ? "Sim" : "Nao",
             }))
           ),
         ...report.unassigned.map((g) => ({
@@ -106,6 +107,7 @@ export default function ExportDialog({ eventId }: ExportDialogProps) {
           "Mesa": "",
           "Email": g.email ?? "",
           "Telefone": g.phone ?? "",
+          "Convite Entregue": g.inviteDelivered ? "Sim" : "Nao",
         })),
       ];
 
@@ -142,7 +144,7 @@ export default function ExportDialog({ eventId }: ExportDialogProps) {
       if (rows.length === 0) throw new Error("Nenhum convidado encontrado no backup");
 
       // Parse guests with their table assignments
-      const guestsToImport: Array<{ name: string; company?: string; email?: string; phone?: string; tableNumber?: number }> = [];
+      const guestsToImport: Array<{ name: string; company?: string; email?: string; phone?: string; tableNumber?: number; inviteDelivered?: boolean }> = [];
 
       for (const row of rows) {
         const name = String(row["Nome Convidado"] ?? "").trim();
@@ -152,7 +154,9 @@ export default function ExportDialog({ eventId }: ExportDialogProps) {
         const phone = String(row["Telefone"] ?? "").trim() || undefined;
         const mesaRaw = row["Mesa"];
         const tableNumber = mesaRaw ? Number(mesaRaw) : undefined;
-        guestsToImport.push({ name, company, email, phone, tableNumber: tableNumber && !isNaN(tableNumber) ? tableNumber : undefined });
+        const conviteRaw = String(row["Convite Entregue"] ?? "").trim().toLowerCase();
+        const inviteDelivered = conviteRaw === "sim" || conviteRaw === "yes" || conviteRaw === "1" || conviteRaw === "true";
+        guestsToImport.push({ name, company, email, phone, tableNumber: tableNumber && !isNaN(tableNumber) ? tableNumber : undefined, inviteDelivered });
       }
 
       if (guestsToImport.length === 0) throw new Error("Nenhum convidado válido encontrado");
@@ -165,6 +169,7 @@ export default function ExportDialog({ eventId }: ExportDialogProps) {
           company: g.company,
           email: g.email,
           phone: g.phone,
+          inviteDelivered: g.inviteDelivered,
         })),
         importBatch: `backup-restore-${Date.now()}`,
       });

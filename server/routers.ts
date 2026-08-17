@@ -233,6 +233,7 @@ export const appRouter = router({
               company: z.string().optional(),
               email: z.string().optional(),
               phone: z.string().optional(),
+              inviteDelivered: z.boolean().optional(),
             })
           ),
           importBatch: z.string(),
@@ -247,6 +248,7 @@ export const appRouter = router({
           phone: g.phone ?? null,
           tableId: null as number | null,
           importBatch: input.importBatch,
+          inviteDelivered: g.inviteDelivered ?? false,
         }));
         const count = await bulkInsertGuests(guestList);
         return { success: true, count };
