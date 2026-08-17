@@ -107,6 +107,7 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
     if (!q.trim()) { setSearchHighlightedTableIds(new Set()); return; }
     const lower = q.toLowerCase();
     const matched = new Set<number>();
+    // 1. Search by company name on tables
     for (const t of tables) {
       // Check companyNames JSON array
       if (t.companyNames) {
@@ -117,8 +118,18 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
       }
       if (t.companyName?.toLowerCase().includes(lower)) matched.add(t.id);
     }
+    // 2. Search by guest name — highlight the table where the guest is seated
+    for (const g of allGuests) {
+      if (g.tableId != null && g.name.toLowerCase().includes(lower)) {
+        matched.add(g.tableId);
+      }
+      // Also match by guest company field
+      if (g.tableId != null && g.company?.toLowerCase().includes(lower)) {
+        matched.add(g.tableId);
+      }
+    }
     setSearchHighlightedTableIds(matched);
-  }, [tables, setCompanySearch, setSearchHighlightedTableIds]);
+  }, [tables, allGuests, setCompanySearch, setSearchHighlightedTableIds]);
 
   const clearSearch = () => { setCompanySearch(""); setSearchHighlightedTableIds(new Set()); };
 
@@ -165,9 +176,9 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
         type="text"
         value={companySearch}
         onChange={(e) => handleSearchChange(e.target.value)}
-        placeholder="Buscar empresa..."
+        placeholder="Buscar nome ou empresa..."
         className="h-8 pl-7 pr-7 text-xs bg-white border border-[#c8bfb0] rounded-sm text-[#1c1917] placeholder-[#b0a89e] focus:outline-none focus:border-[#8a7f72] w-40 md:w-48"
-        aria-label="Buscar empresa no mapa"
+        aria-label="Buscar nome ou empresa no mapa"
       />
       {companySearch && (
         <button
