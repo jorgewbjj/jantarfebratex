@@ -395,8 +395,8 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, allIn
   return (
     <div
       ref={containerRef}
-      className="w-full h-full overflow-hidden relative select-none"
-      style={{ cursor: editMode ? (isDraggingTable.current ? "grabbing" : "move") : (isPanning.current ? "grabbing" : "grab"), background: "#e8e4dc" }}
+      className="w-full h-full overflow-hidden relative select-none touch-none"
+      style={{ cursor: editMode ? (isDraggingTable.current ? "grabbing" : "move") : (isPanning.current ? "grabbing" : "grab"), background: "#e8e4dc", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
       onMouseDown={editMode ? undefined : handleMouseDown}
       onMouseMove={(e) => { if (editMode) handleEditTableMouseMove(e); else handleMouseMove(e); }}
       onMouseUp={() => { if (editMode) handleEditTableMouseUp(); else handleMouseUp(); }}
@@ -406,46 +406,46 @@ export default function FloorMap({ eventId: _eventId, tables, guestCounts, allIn
       onTouchEnd={handleTouchEnd}
     >
       {/* ── Zoom controls ── */}
-      <div className="absolute top-3 right-3 z-20 flex flex-col gap-1">
+      <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5">
         {[
           { icon: ZoomIn,   label: "Ampliar",   action: () => applyZoom(+ZOOM_STEP) },
           { icon: ZoomOut,  label: "Reduzir",   action: () => applyZoom(-ZOOM_STEP) },
-          { icon: Maximize2,label: "Resetar",   action: () => { setZoom(1); setPan({ x: 0, y: 0 }); } },
+          { icon: Maximize2,label: "Resetar",   action: () => { setZoom(0.55); setPan({ x: 0, y: 0 }); } },
         ].map(({ icon: Icon, label, action }) => (
           <button
             key={label}
             onClick={action}
             aria-label={label}
-            className="w-8 h-8 flex items-center justify-center rounded-sm bg-white/90 border border-[#c8bfb0] text-[#6b5e52] hover:bg-[#f8f5ef] shadow-sm"
+            className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded-md md:rounded-sm bg-white/90 border border-[#c8bfb0] text-[#6b5e52] hover:bg-[#f8f5ef] shadow-sm active:scale-95 transition-transform"
           >
-            <Icon size={14} />
+            <Icon size={16} className="md:w-3.5 md:h-3.5" />
           </button>
         ))}
-        <div className="text-center text-[9px] text-[#b0a89e] font-medium mt-0.5">{Math.round(zoom * 100)}%</div>
-        <div className="mt-2 border-t border-[#c8bfb0] pt-1">
+        <div className="text-center text-[10px] md:text-[9px] text-[#b0a89e] font-medium mt-0.5">{Math.round(zoom * 100)}%</div>
+        <div className="mt-2 border-t border-[#c8bfb0] pt-1.5">
           <button
             onClick={() => setEditMode(!editMode)}
             aria-label="Editar posi\u00e7\u00f5es"
-            className={`w-8 h-8 flex items-center justify-center rounded-sm border shadow-sm ${
+            className={`w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded-md md:rounded-sm border shadow-sm active:scale-95 transition-transform ${
               editMode
                 ? "bg-amber-100 border-amber-400 text-amber-700"
                 : "bg-white/90 border-[#c8bfb0] text-[#6b5e52] hover:bg-[#f8f5ef]"
             }`}
           >
-            <Move size={14} />
+            <Move size={16} className="md:w-3.5 md:h-3.5" />
           </button>
         </div>
       </div>
 
       {/* ── Hint ── */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-        <span className="text-[10px] text-[#b0a89e] bg-white/70 px-2 py-0.5 rounded-full">
-          Scroll para zoom · Arraste para mover · Clique numa mesa para detalhes
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none hidden md:block">
+        <span className="text-[10px] text-[#b0a89e] bg-white/70 px-2 py-1 rounded-full">
+          Scroll para zoom · Arraste para mover · Clique numa mesa
         </span>
       </div>
 
       {/* ── Legend ── */}
-      <div className="absolute bottom-2 right-3 z-10 flex items-center gap-3 pointer-events-none">
+      <div className="absolute bottom-2 right-3 z-10 flex items-center gap-2 md:gap-3 pointer-events-none">
         {[
           { color: "rgba(245,241,232,0.9)", stroke: "rgba(184,176,164,0.8)", label: "Vazia" },
           { color: "rgba(219,234,254,0.9)", stroke: "#93c5fd",               label: "Parcial" },

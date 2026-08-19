@@ -98,6 +98,8 @@
     @apply bg-background text-foreground;
     font-family: 'DM Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
   }
   .font-serif {
     font-family: 'Playfair Display', serif;
@@ -182,6 +184,18 @@
 }
 
 /* Print styles */
+/* iOS viewport height fix */
+html, body, #root {
+  height: 100dvh;
+}
+
+/* Touch devices: always show action buttons (no hover on mobile) */
+@media (hover: none) and (pointer: coarse) {
+  .guest-action-btn {
+    opacity: 0.8 !important;
+  }
+}
+
 @media print {
   .no-print { display: none !important; }
   body { background: white; }

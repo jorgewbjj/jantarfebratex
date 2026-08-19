@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Download, LayoutGrid, Users, MapPin,
   PanelLeftOpen, PanelLeftClose, ChevronDown,
@@ -34,7 +34,16 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
     searchHighlightedTableIds, setSearchHighlightedTableIds,
   } = useSeating();
   const isMobile = useIsMobile();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarInitialized = useRef(false);
+
+  // On first render after isMobile is determined, open sidebar on desktop only
+  useEffect(() => {
+    if (!sidebarInitialized.current) {
+      sidebarInitialized.current = true;
+      setSidebarOpen(!isMobile);
+    }
+  }, [isMobile]);
   const [exportingPng, setExportingPng] = useState(false);
 
   const utils = trpc.useUtils();
@@ -177,7 +186,7 @@ export default function SeatingManager({ eventId }: SeatingManagerProps) {
         value={companySearch}
         onChange={(e) => handleSearchChange(e.target.value)}
         placeholder="Buscar nome ou empresa..."
-        className="h-8 pl-7 pr-7 text-xs bg-white border border-[#c8bfb0] rounded-sm text-[#1c1917] placeholder-[#b0a89e] focus:outline-none focus:border-[#8a7f72] w-40 md:w-48"
+        className="h-9 md:h-8 pl-7 pr-7 text-sm md:text-xs bg-white border border-[#c8bfb0] rounded-md md:rounded-sm text-[#1c1917] placeholder-[#b0a89e] focus:outline-none focus:border-[#8a7f72] w-full md:w-48"
         aria-label="Buscar nome ou empresa no mapa"
       />
       {companySearch && (
